@@ -2,11 +2,12 @@ package passpasspass
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 )
 
 const (
-	Clubs     Suit = iota
+	Clubs Suit = iota
 	Diamonds
 	Hearts
 	Spades
@@ -14,19 +15,23 @@ const (
 
 type Suit int
 
-func (s Suit) String() string {
-	switch s {
-	case Clubs:
-		return "♣"
-	case Diamonds:
-		return "♦"
-	case Hearts:
-		return "♥"
-	case Spades:
-		return "♠"
-	default:
-		panic("Invalid Suit")
+var allSuits = []string{"♣️", "♦️", "❤️", "♠️"}
+
+func NewSuitFromString(suit string) (Suit, error) {
+	i := slices.Index(allSuits, suit)
+	if i < 0 {
+		return Suit(0), fmt.Errorf("invalid suit: %s", suit)
 	}
+
+	return Suit(i), nil
+}
+
+func (s Suit) String() string {
+	if int(s) > int(Spades) || int(s) < int(Clubs) {
+		return "Invalid Suit"
+	}
+
+	return allSuits[int(s)]
 }
 
 const (
@@ -45,7 +50,18 @@ const (
 	Ace
 )
 
+var allRanks = []string{"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"}
+
 type Rank int
+
+func NewRankFromString(rank string) (Rank, error) {
+	i := slices.Index(allRanks, rank)
+	if i < 0 {
+		return Rank(0), fmt.Errorf("invalid rank: %s", rank)
+	}
+
+	return Rank(i + 2), nil
+}
 
 func (r Rank) String() string {
 	switch r {
@@ -68,14 +84,31 @@ func (r Rank) String() string {
 
 type Card struct {
 	suit Suit
-	rank Rank 
+	rank Rank
 }
 
 func NewCard(suit Suit, rank Rank) *Card {
-	return &Card {
+	return &Card{
 		rank: rank,
 		suit: suit,
 	}
+}
+
+func NewCardFromString(card string) (*Card, error) {
+	offset := len(card) - 6 // 6 is the length of the unicode suit markers
+	r := card[:offset]
+	s := card[offset:]
+
+	rank, err := NewRankFromString(r)
+	if err != nil {
+		return nil, fmt.Errorf("invalid format in %q: %w", card, err)
+	}
+	suit, err := NewSuitFromString(s)
+	if err != nil {
+		return nil, fmt.Errorf("invalid format in %q: %w", card, err)
+	}
+
+	return &Card{suit: suit, rank: rank}, nil
 }
 
 func (c *Card) HCP() int {
@@ -94,7 +127,7 @@ func (c *Card) HCP() int {
 }
 
 func (c *Card) Value() int {
-	return int(c.suit) * int(HandSize) + int(c.rank)
+	return int(c.suit)*int(HandSize) + int(c.rank)
 }
 
 func (c *Card) HasSuit(s Suit) bool {
