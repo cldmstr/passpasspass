@@ -57,7 +57,7 @@ func TestHandDistributionHappy(t *testing.T) {
 			hand: []string{"Q♣️", "K♣️", "A♣️", "Q❤️", "K❤️", "A❤️", "Q♠️", "K♠️", "A♠️", "J♦️", "Q♦️", "K♦️", "A♦️"},
 
 			wantDist: ppp.Distribution([]int{3, 4, 3, 3}),
-			wantHCP:  37,
+			wantHCP:  ppp.MaxHandHCP,
 		},
 		{
 			name: "missing clubs",
