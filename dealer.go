@@ -1,7 +1,6 @@
 package passpasspass
 
 import (
-	"fmt"
 	"math/rand"
 )
 
@@ -19,19 +18,8 @@ func StandardDeck() Deck {
 	return d
 }
 
-type Table struct {
-	North *Hand
-	South *Hand
-	East  *Hand
-	West  *Hand
-}
-
-func (t Table) String() string {
-	return fmt.Sprintf("North (%d): \n%s\nEast (%d): \n%s\nSouth (%d):  \n%s\nWest (%d):  \n%s\n", t.North.HCP(), t.North, t.East.HCP(), t.East, t.South.HCP(), t.South, t.West.HCP(), t.West)
-}
-
 type Dealer interface {
-	Deal() *Table
+	Deal() []*Hand
 }
 
 type randomDealer struct {
@@ -44,7 +32,7 @@ func NewRandomDealer(seed int64) Dealer {
 	}
 }
 
-func (d *randomDealer) Deal() *Table {
+func (d *randomDealer) Deal() []*Hand {
 	deck := StandardDeck()
 	d.r.Shuffle(int(HandSize*4), func(i, j int) {
 		hold := deck[i]
@@ -63,10 +51,5 @@ func (d *randomDealer) Deal() *Table {
 		hands[i] = hand
 	}
 
-	return &Table{
-		North: hands[0],
-		South: hands[1],
-		East:  hands[2],
-		West:  hands[3],
-	}
+	return hands
 }

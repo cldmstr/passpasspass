@@ -18,11 +18,14 @@ func NewBid(level int, suit Suit) *Bid {
 
 var Pass = NewBid(0, 0)
 
-func (b Bid) Value() int {
+func (b *Bid) Value() int {
 	return 10*b.level + int(b.suit)
 }
 
-func (b Bid) String() string {
+func (b *Bid) String() string {
+	if b == Pass {
+		return "Pass"
+	}
 	return fmt.Sprintf("%d%s", b.level, b.suit)
 }
 
@@ -41,9 +44,30 @@ func NewConvention(bid *Bid, conditions ...Condition) *Convention {
 func (c *Convention) NextBid(hand *Hand) (bool, *Bid) {
 	for _, c := range c.conditions {
 		if !c(hand) {
-			return false, nil
+			return false, Pass
 		}
 	}
 
 	return true, c.Bid
+}
+
+type ConventionSheet struct {
+	sheet []*Convention
+}
+
+func NewConventionSheet() *ConventionSheet {
+	return &ConventionSheet{
+		sheet: make([]*Convention, 0, 35),
+	}
+}
+
+func (cs *ConventionSheet) Bid(hand *Hand) *Bid {
+	for _, c := range cs.sheet {
+		makeBid, bid := c.NextBid(hand)
+		if makeBid {
+			return bid
+		}
+	}
+
+	return Pass
 }

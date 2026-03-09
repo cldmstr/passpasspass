@@ -9,7 +9,7 @@ import (
 
 func main() {
 	dealer := ppp.NewRandomDealer(time.Now().UnixNano())
-	table := dealer.Deal()
+	table := ppp.NewTable(ppp.Twooverone, dealer.Deal())
 
-	fmt.Printf("%v", table)
+	fmt.Printf("%s", table)
 }

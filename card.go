@@ -11,11 +11,12 @@ const (
 	Diamonds
 	Hearts
 	Spades
+	NoTrump
 )
 
 type Suit int
 
-var allSuits = []string{"♣️", "♦️", "❤️", "♠️"}
+var allSuits = []string{"♣️", "♦️", "❤️", "♠️", "NT"}
 
 func NewSuitFromString(suit string) (Suit, error) {
 	i := slices.Index(allSuits, suit)
