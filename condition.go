@@ -32,10 +32,13 @@ func NewHCPIntervalCondition(minHCP, maxHCP int) Condition {
 	}
 }
 
-func NewMinMaxDistributionCondition(minDist, maxDist Distribution) Condition {
+type SuitRange struct{ Min, Max int }
+type DistributionRange [4]SuitRange // [clubs, diamonds, hearts, spades]
+
+func NewMinMaxDistributionCondition(r DistributionRange) Condition {
 	return func(hand *Hand) bool {
 		for i, d := range hand.Distribution() {
-			if minDist[i] > d || maxDist[i] < d {
+			if r[i].Min > d || r[i].Max < d {
 				return false
 			}
 		}

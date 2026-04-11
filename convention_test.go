@@ -60,7 +60,7 @@ func TestConvention_NextBid(t *testing.T) {
 	sut := ppp.NewConvention(
 		ppp.NewBid(1, ppp.Clubs),
 		ppp.NewHCPIntervalCondition(11, 17),
-		ppp.NewMinMaxDistributionCondition(ppp.NewDistribution(2, 1, 1, 1), ppp.NewDistribution(7, 4, 4, 4)),
+		ppp.NewMinMaxDistributionCondition(ppp.DistributionRange{{2, 7}, {1, 4}, {1, 4}, {1, 4}}),
 	)
 
 	tt := []struct {
