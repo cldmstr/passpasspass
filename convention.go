@@ -2,6 +2,7 @@ package passpasspass
 
 import (
 	"fmt"
+	"strconv"
 )
 
 type Bid struct {
@@ -17,6 +18,27 @@ func NewBid(level int, suit Suit) *Bid {
 }
 
 var Pass = NewBid(0, 0)
+
+func NewBidFromString(s string) (*Bid, error) {
+	if s == "Pass" || s == "pass" {
+		return Pass, nil
+	}
+	if len(s) < 2 {
+		return nil, fmt.Errorf("invalid bid: %q", s)
+	}
+	level, err := strconv.Atoi(s[:1])
+	if err != nil || level < 1 || level > 7 {
+		return nil, fmt.Errorf("invalid bid level in %q", s)
+	}
+	suitMap := map[string]Suit{
+		"C": Clubs, "D": Diamonds, "H": Hearts, "S": Spades, "NT": NoTrump,
+	}
+	suit, ok := suitMap[s[1:]]
+	if !ok {
+		return nil, fmt.Errorf("invalid bid suit in %q", s)
+	}
+	return NewBid(level, suit), nil
+}
 
 func (b *Bid) Value() int {
 	return 10*b.level + int(b.suit)
@@ -59,6 +81,10 @@ func NewConventionSheet() *ConventionSheet {
 	return &ConventionSheet{
 		sheet: make([]*Convention, 0, 35),
 	}
+}
+
+func (cs *ConventionSheet) Add(convention *Convention) {
+	cs.sheet = append(cs.sheet, convention)
 }
 
 func (cs *ConventionSheet) Bid(hand *Hand) *Bid {

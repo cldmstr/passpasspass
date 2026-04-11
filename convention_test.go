@@ -8,6 +8,50 @@ import (
 	ppp "github.com/cldmstr/passpasspass"
 )
 
+func TestNewBidFromString(t *testing.T) {
+	tt := []struct {
+		name    string
+		input   string
+		want    string
+		wantErr bool
+	}{
+		{name: "1C", input: "1C", want: "1♣️"},
+		{name: "1D", input: "1D", want: "1♦️"},
+		{name: "1H", input: "1H", want: "1❤️"},
+		{name: "1S", input: "1S", want: "1♠️"},
+		{name: "1NT", input: "1NT", want: "1NT"},
+		{name: "2C", input: "2C", want: "2♣️"},
+		{name: "7NT", input: "7NT", want: "7NT"},
+		{name: "Pass", input: "Pass", want: "Pass"},
+		{name: "pass", input: "pass", want: "Pass"},
+		{name: "invalid suit", input: "1X", wantErr: true},
+		{name: "invalid level 0", input: "0C", wantErr: true},
+		{name: "invalid level 8", input: "8H", wantErr: true},
+		{name: "too short", input: "1", wantErr: true},
+		{name: "empty", input: "", wantErr: true},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			bid, err := ppp.NewBidFromString(tc.input)
+			if tc.wantErr {
+				is.True(err != nil)
+				return
+			}
+			is.NoErr(err)
+			is.Equal(tc.want, bid.String())
+		})
+	}
+}
+
+func TestNewBidFromString_PassIsSingleton(t *testing.T) {
+	is := is.New(t)
+	bid, err := ppp.NewBidFromString("Pass")
+	is.NoErr(err)
+	is.True(bid == ppp.Pass)
+}
+
 func TestBidOutput(t *testing.T) {
 	tt := []struct {
 		name string
