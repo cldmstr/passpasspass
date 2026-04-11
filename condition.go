@@ -14,6 +14,18 @@ func NewMultiCondition(conditions ...Condition) Condition {
 	}
 }
 
+func NewAllCondition(conditions ...Condition) Condition {
+	return func(hand *Hand) bool {
+		for _, c := range conditions {
+			if !c(hand) {
+				return false
+			}
+		}
+
+		return true
+	}
+}
+
 func NewHCPIntervalCondition(minHCP, maxHCP int) Condition {
 	return func(hand *Hand) bool {
 		return minHCP <= hand.HCP() && hand.HCP() <= maxHCP

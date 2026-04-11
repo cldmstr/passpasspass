@@ -33,10 +33,20 @@ func init() {
 		NewBid(2, Clubs),
 		NewHCPIntervalCondition(20, 22),
 	)
-	Twooverone.sheet = append(Twooverone.sheet, c2)
-	Twooverone.sheet = append(Twooverone.sheet, nt1)
-	Twooverone.sheet = append(Twooverone.sheet, s1)
-	Twooverone.sheet = append(Twooverone.sheet, h1)
-	Twooverone.sheet = append(Twooverone.sheet, d1)
-	Twooverone.sheet = append(Twooverone.sheet, c1)
+	d2 := NewConvention(
+		NewBid(2, Diamonds),
+		NewMultiCondition(
+			NewAllCondition(NewHCPIntervalCondition(23, 24), NewBalancedDistributionCondition()),
+			NewAllCondition(NewHCPIntervalCondition(6, 9), NewMinMaxDistributionCondition(NewDistribution(1, 1, 6, 1), NewDistribution(5, 5, 13, 5))),
+			NewAllCondition(NewHCPIntervalCondition(6, 9), NewMinMaxDistributionCondition(NewDistribution(1, 1, 1, 6), NewDistribution(5, 5, 5, 13))),
+			NewHCPIntervalCondition(27, 40),
+		),
+	)
+	Twooverone.Add(d2)
+	Twooverone.Add(c2)
+	Twooverone.Add(nt1)
+	Twooverone.Add(s1)
+	Twooverone.Add(h1)
+	Twooverone.Add(d1)
+	Twooverone.Add(c1)
 }
