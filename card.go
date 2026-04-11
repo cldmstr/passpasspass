@@ -28,7 +28,7 @@ func NewSuitFromString(suit string) (Suit, error) {
 }
 
 func (s Suit) String() string {
-	if int(s) > int(Spades) || int(s) < int(Clubs) {
+	if int(s) > int(NoTrump) || int(s) < int(Clubs) {
 		return "Invalid Suit"
 	}
 
