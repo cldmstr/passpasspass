@@ -1,0 +1,7 @@
+name: strong_notrump
+conventions:
+  - bid: 1NT
+    conditions:
+      all:
+        - balanced: true
+        - hcp: [15, 17]

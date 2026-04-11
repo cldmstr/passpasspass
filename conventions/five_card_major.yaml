@@ -1,0 +1,14 @@
+name: five_card_major
+conventions:
+  - bid: 1S
+    conditions:
+      all:
+        - hcp: [11, 17]
+        - suit_length:
+            spades: [5, 6]
+  - bid: 1H
+    conditions:
+      all:
+        - hcp: [11, 17]
+        - suit_length:
+            hearts: [5, 6]

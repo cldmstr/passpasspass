@@ -1,0 +1,5 @@
+name: strong_two_clubs
+conventions:
+  - bid: 2C
+    conditions:
+      - hcp: [20, 22]
