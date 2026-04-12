@@ -27,7 +27,7 @@ func NewSuitFromString(suit string) (Suit, error) {
 	if i := slices.Index(suitLetters, suit); i >= 0 {
 		return Suit(i), nil
 	}
-	return Suit(0), fmt.Errorf("invalid suit: %s", suit)
+	return Suit(-1), fmt.Errorf("invalid suit: %s", suit)
 }
 
 func (s Suit) String() string {
