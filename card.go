@@ -18,13 +18,16 @@ type Suit int
 
 var allSuits = []string{"♣️", "♦️", "❤️", "♠️", "NT"}
 
-func NewSuitFromString(suit string) (Suit, error) {
-	i := slices.Index(allSuits, suit)
-	if i < 0 {
-		return Suit(0), fmt.Errorf("invalid suit: %s", suit)
-	}
+var suitLetters = []string{"C", "D", "H", "S", "NT"}
 
-	return Suit(i), nil
+func NewSuitFromString(suit string) (Suit, error) {
+	if i := slices.Index(allSuits, suit); i >= 0 {
+		return Suit(i), nil
+	}
+	if i := slices.Index(suitLetters, suit); i >= 0 {
+		return Suit(i), nil
+	}
+	return Suit(0), fmt.Errorf("invalid suit: %s", suit)
 }
 
 func (s Suit) String() string {

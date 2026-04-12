@@ -30,11 +30,8 @@ func NewBidFromString(s string) (*Bid, error) {
 	if err != nil || level < 1 || level > 7 {
 		return nil, fmt.Errorf("invalid bid level in %q", s)
 	}
-	suitMap := map[string]Suit{
-		"C": Clubs, "D": Diamonds, "H": Hearts, "S": Spades, "NT": NoTrump,
-	}
-	suit, ok := suitMap[s[1:]]
-	if !ok {
+	suit, err := NewSuitFromString(s[1:])
+	if err != nil {
 		return nil, fmt.Errorf("invalid bid suit in %q", s)
 	}
 	return NewBid(level, suit), nil
