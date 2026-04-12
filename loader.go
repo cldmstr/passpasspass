@@ -2,8 +2,7 @@ package passpasspass
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"io/fs"
 
 	"gopkg.in/yaml.v3"
 )
@@ -140,19 +139,21 @@ func buildConventions(entries []yamlConvention) ([]*Convention, error) {
 
 // Loader reads YAML convention files and produces ConventionSheets.
 type Loader struct {
-	baseDir string
+	fsys fs.FS
 }
 
-// NewLoader creates a Loader that resolves sub-convention includes
-// relative to baseDir.
-func NewLoader(baseDir string) *Loader {
-	return &Loader{baseDir: baseDir}
+// NewLoader creates a Loader that reads convention files from fsys.
+// Sub-convention includes are resolved as "conventions/<name>.yaml"
+// within the root of fsys.
+func NewLoader(fsys fs.FS) *Loader {
+	return &Loader{fsys: fsys}
 }
 
-// LoadCard reads a convention card file, resolves all includes from
-// baseDir, and returns a ready-to-use ConventionSheet.
+// LoadCard reads a convention card file at cardPath (relative to the
+// loader's FS root), resolves all includes, and returns a ready-to-use
+// ConventionSheet.
 func (l *Loader) LoadCard(cardPath string) (*ConventionSheet, error) {
-	data, err := os.ReadFile(cardPath)
+	data, err := fs.ReadFile(l.fsys, cardPath)
 	if err != nil {
 		return nil, fmt.Errorf("reading card %q: %w", cardPath, err)
 	}
@@ -164,8 +165,8 @@ func (l *Loader) LoadCard(cardPath string) (*ConventionSheet, error) {
 	cs := NewConventionSheet()
 
 	for _, name := range card.Includes {
-		path := filepath.Join(l.baseDir, name+".yaml")
-		data, err := os.ReadFile(path)
+		path := "conventions/" + name + ".yaml"
+		data, err := fs.ReadFile(l.fsys, path)
 		if err != nil {
 			return nil, fmt.Errorf("loading sub-convention %q: %w", name, err)
 		}

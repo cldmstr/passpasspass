@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"time"
 
@@ -12,17 +13,16 @@ func main() {
 	dealer := ppp.NewRandomDealer(time.Now().UnixNano())
 
 	var cs *ppp.ConventionSheet
+	var err error
 	if len(os.Args) >= 3 {
-		cardPath := os.Args[1]
-		conventionsDir := os.Args[2]
-		var err error
-		cs, err = ppp.NewLoader(conventionsDir).LoadCard(cardPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error loading convention card: %v\n", err)
-			os.Exit(1)
-		}
+		cs, err = ppp.NewLoader(os.DirFS(os.Args[1])).LoadCard(os.Args[2])
 	} else {
-		cs = ppp.Twooverone
+		dataFS, _ := fs.Sub(ppp.DefaultData, "data")
+		cs, err = ppp.NewLoader(dataFS).LoadCard("cards/two_over_one.yaml")
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error loading convention card: %v\n", err)
+		os.Exit(1)
 	}
 
 	table := ppp.NewTable(cs, dealer.Deal())

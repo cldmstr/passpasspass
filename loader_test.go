@@ -1,6 +1,7 @@
 package passpasspass_test
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,14 +25,14 @@ func TestLoader_LoadCard_HCPCondition(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 
-	cardPath := writeTempFile(t, dir, "card.yaml", `
+	writeTempFile(t, dir, "card.yaml", `
 name: test
 conventions:
   - bid: 1NT
     conditions:
       - hcp: [15, 17]
 `)
-	cs, err := ppp.NewLoader(dir).LoadCard(cardPath)
+	cs, err := ppp.NewLoader(os.DirFS(dir)).LoadCard("card.yaml")
 	is.NoErr(err)
 
 	inRange, _ := ppp.NewHandFromStrings([]string{
@@ -49,7 +50,7 @@ func TestLoader_LoadCard_BalancedCondition(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 
-	cardPath := writeTempFile(t, dir, "card.yaml", `
+	writeTempFile(t, dir, "card.yaml", `
 name: test
 conventions:
   - bid: 1NT
@@ -58,7 +59,7 @@ conventions:
         - balanced: true
         - hcp: [15, 17]
 `)
-	cs, err := ppp.NewLoader(dir).LoadCard(cardPath)
+	cs, err := ppp.NewLoader(os.DirFS(dir)).LoadCard("card.yaml")
 	is.NoErr(err)
 
 	balanced, _ := ppp.NewHandFromStrings([]string{
@@ -76,7 +77,7 @@ func TestLoader_LoadCard_SuitLengthCondition(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 
-	cardPath := writeTempFile(t, dir, "card.yaml", `
+	writeTempFile(t, dir, "card.yaml", `
 name: test
 conventions:
   - bid: 1H
@@ -86,7 +87,7 @@ conventions:
         - suit_length:
             hearts: [5, 13]
 `)
-	cs, err := ppp.NewLoader(dir).LoadCard(cardPath)
+	cs, err := ppp.NewLoader(os.DirFS(dir)).LoadCard("card.yaml")
 	is.NoErr(err)
 
 	fiveHearts, _ := ppp.NewHandFromStrings([]string{
@@ -104,7 +105,7 @@ func TestLoader_LoadCard_AnyCondition(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 
-	cardPath := writeTempFile(t, dir, "card.yaml", `
+	writeTempFile(t, dir, "card.yaml", `
 name: test
 conventions:
   - bid: 2D
@@ -113,7 +114,7 @@ conventions:
         - hcp: [6, 9]
         - hcp: [23, 24]
 `)
-	cs, err := ppp.NewLoader(dir).LoadCard(cardPath)
+	cs, err := ppp.NewLoader(os.DirFS(dir)).LoadCard("card.yaml")
 	is.NoErr(err)
 
 	// 6 HCP — matches hcp: [6, 9]
@@ -132,8 +133,12 @@ conventions:
 func TestLoader_LoadCard_Includes(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
+	convDir := filepath.Join(dir, "conventions")
+	if err := os.MkdirAll(convDir, 0700); err != nil {
+		t.Fatal(err)
+	}
 
-	writeTempFile(t, dir, "strong_notrump.yaml", `
+	writeTempFile(t, convDir, "strong_notrump.yaml", `
 name: strong_notrump
 conventions:
   - bid: 1NT
@@ -142,7 +147,7 @@ conventions:
         - balanced: true
         - hcp: [15, 17]
 `)
-	cardPath := writeTempFile(t, dir, "card.yaml", `
+	writeTempFile(t, dir, "card.yaml", `
 name: test
 includes:
   - strong_notrump
@@ -151,7 +156,7 @@ conventions:
     conditions:
       - hcp: [11, 17]
 `)
-	cs, err := ppp.NewLoader(dir).LoadCard(cardPath)
+	cs, err := ppp.NewLoader(os.DirFS(dir)).LoadCard("card.yaml")
 	is.NoErr(err)
 
 	// Balanced 15 HCP — 1NT (from include) wins over 1C (card convention)
@@ -165,12 +170,12 @@ func TestLoader_LoadCard_ErrorOnMissingInclude(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 
-	cardPath := writeTempFile(t, dir, "card.yaml", `
+	writeTempFile(t, dir, "card.yaml", `
 name: test
 includes:
   - does_not_exist
 `)
-	_, err := ppp.NewLoader(dir).LoadCard(cardPath)
+	_, err := ppp.NewLoader(os.DirFS(dir)).LoadCard("card.yaml")
 	is.True(err != nil)
 }
 
@@ -178,21 +183,23 @@ func TestLoader_LoadCard_ErrorOnInvalidBid(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 
-	cardPath := writeTempFile(t, dir, "card.yaml", `
+	writeTempFile(t, dir, "card.yaml", `
 name: test
 conventions:
   - bid: 9NT
     conditions:
       - hcp: [11, 17]
 `)
-	_, err := ppp.NewLoader(dir).LoadCard(cardPath)
+	_, err := ppp.NewLoader(os.DirFS(dir)).LoadCard("card.yaml")
 	is.True(err != nil)
 }
 
 func TestLoader_RoundTrip_TwoOverOne(t *testing.T) {
 	is := is.New(t)
 
-	cs, err := ppp.NewLoader("conventions").LoadCard("cards/two_over_one.yaml")
+	dataFS, err := fs.Sub(ppp.DefaultData, "data")
+	is.NoErr(err)
+	cs, err := ppp.NewLoader(dataFS).LoadCard("cards/two_over_one.yaml")
 	is.NoErr(err)
 
 	tt := []struct {
