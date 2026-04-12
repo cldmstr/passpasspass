@@ -63,6 +63,7 @@ func (yc *yamlConvention) UnmarshalYAML(value *yaml.Node) error {
 type conditionNode struct {
 	HCP        []int                `yaml:"hcp"`
 	Balanced   *bool                `yaml:"balanced"`
+	RuleOf20   *bool                `yaml:"rule_of_20"`
 	SuitLength map[string][]int     `yaml:"suit_length"`
 	All        []conditionNode      `yaml:"all"`
 	Any        []conditionNode      `yaml:"any"`
@@ -79,6 +80,9 @@ func buildCondition(n conditionNode) (Condition, error) {
 
 	case n.Balanced != nil:
 		return NewBalancedDistributionCondition(), nil
+
+	case n.RuleOf20 != nil:
+		return NewRuleOfTwentyCondition(), nil
 
 	case n.SuitLength != nil:
 		r := DistributionRange{{0, 13}, {0, 13}, {0, 13}, {0, 13}}

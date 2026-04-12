@@ -47,6 +47,21 @@ func NewMinMaxDistributionCondition(r DistributionRange) Condition {
 	}
 }
 
+func NewRuleOfTwentyCondition() Condition {
+	return func(hand *Hand) bool {
+		d := hand.Distribution()
+		longest, second := 0, 0
+		for _, n := range d {
+			if n >= longest {
+				longest, second = n, longest
+			} else if n > second {
+				second = n
+			}
+		}
+		return hand.HCP()+longest+second >= 20
+	}
+}
+
 func NewBalancedDistributionCondition() Condition {
 	return func(hand *Hand) bool {
 		doubletons := 0

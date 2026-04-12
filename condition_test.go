@@ -8,6 +8,48 @@ import (
 	ppp "github.com/cldmstr/passpasspass"
 )
 
+func TestRuleOfTwentyCondition(t *testing.T) {
+	sut := ppp.NewConvention(
+		ppp.NewBid(1, ppp.Clubs),
+		ppp.NewRuleOfTwentyCondition(),
+	)
+
+	tt := []struct {
+		name      string
+		hand      []string
+		shouldBid bool
+	}{
+		{
+			// 10 HCP (A K Q J clubs) + 6 clubs + 4 diamonds = 20
+			name:      "exactly 20",
+			hand:      []string{"A♣️", "K♣️", "Q♣️", "J♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "5♦️", "2❤️", "2♠️", "3♠️"},
+			shouldBid: true,
+		},
+		{
+			// 10 HCP (A K Q J clubs) + 5 clubs + 4 diamonds = 19
+			name:      "one short",
+			hand:      []string{"A♣️", "K♣️", "Q♣️", "J♣️", "2♣️", "2♦️", "3♦️", "4♦️", "5♦️", "2❤️", "3❤️", "2♠️", "3♠️"},
+			shouldBid: false,
+		},
+		{
+			// 16 HCP + 7 spades + 4 hearts = 27
+			name:      "well above 20",
+			hand:      []string{"2♣️", "2♦️", "A❤️", "K❤️", "2❤️", "3❤️", "A♠️", "K♠️", "Q♠️", "2♠️", "3♠️", "4♠️", "5♠️"},
+			shouldBid: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			hand, err := ppp.NewHandFromStrings(tc.hand)
+			is.NoErr(err)
+			willBid, _ := sut.NextBid(hand)
+			is.Equal(tc.shouldBid, willBid)
+		})
+	}
+}
+
 func TestBalancedDistributionCondition(t *testing.T) {
 	sut := ppp.NewConvention(
 		ppp.NewBid(1, ppp.NoTrump),
