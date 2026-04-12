@@ -25,9 +25,13 @@ func TestNewSuitFromString(t *testing.T) {
 		{name: "hearts letter", input: "H", want: ppp.Hearts},
 		{name: "spades letter", input: "S", want: ppp.Spades},
 		{name: "notrump letter", input: "NT", want: ppp.NoTrump},
+		{name: "clubs name", input: "clubs", want: ppp.Clubs},
+		{name: "diamonds name", input: "diamonds", want: ppp.Diamonds},
+		{name: "hearts name", input: "hearts", want: ppp.Hearts},
+		{name: "spades name", input: "spades", want: ppp.Spades},
 		{name: "empty string", input: "", wantErr: true},
 		{name: "unknown letter", input: "X", wantErr: true},
-		{name: "lowercase clubs", input: "clubs", wantErr: true},
+		{name: "uppercase full name", input: "Clubs", wantErr: true},
 	}
 
 	for _, tc := range tt {

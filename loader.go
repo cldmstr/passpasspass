@@ -69,10 +69,6 @@ type conditionNode struct {
 	Any        []conditionNode      `yaml:"any"`
 }
 
-var suitIndex = map[string]int{
-	"clubs": 0, "diamonds": 1, "hearts": 2, "spades": 3,
-}
-
 func buildCondition(n conditionNode) (Condition, error) {
 	switch {
 	case n.HCP != nil:
@@ -87,10 +83,11 @@ func buildCondition(n conditionNode) (Condition, error) {
 	case n.SuitLength != nil:
 		r := DistributionRange{{0, 13}, {0, 13}, {0, 13}, {0, 13}}
 		for suit, rng := range n.SuitLength {
-			i, ok := suitIndex[suit]
-			if !ok {
+			s, err := NewSuitFromString(suit)
+			if err != nil {
 				return nil, fmt.Errorf("unknown suit %q in suit_length", suit)
 			}
+			i := int(s)
 			if len(rng) != 2 {
 				return nil, fmt.Errorf("suit_length %q must have exactly 2 values [min, max]", suit)
 			}

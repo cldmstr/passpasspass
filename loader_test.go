@@ -231,9 +231,9 @@ func TestLoader_RoundTrip_TwoOverOne(t *testing.T) {
 			want: "1♠️",
 		},
 		{
-			// 11 HCP, 5 diamonds, no 5-card major
-			name: "1D four diamonds",
-			hand: []string{"J♣️", "2♣️", "3♣️", "A♦️", "K♦️", "Q♦️", "J♦️", "2♦️", "2❤️", "3❤️", "2♠️", "3♠️", "4♠️"},
+			// 11 HCP, 5 diamonds, 4 spades — rule of 20: 11+5+4=20
+			name: "1D five card diamond",
+			hand: []string{"J♣️", "2♣️", "K♦️", "Q♦️", "J♦️", "2♦️", "3♦️", "2❤️", "3❤️", "A♠️", "2♠️", "3♠️", "4♠️"},
 			want: "1♦️",
 		},
 		{
