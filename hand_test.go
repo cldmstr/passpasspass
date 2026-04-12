@@ -18,6 +18,20 @@ func TestHandDistributionHappy(t *testing.T) {
 		wantHCP  int
 	}{
 		{
+			name: "all clubs",
+			hand: []string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"},
+
+			wantDist: ppp.Distribution([]int{13, 0, 0, 0}),
+			wantHCP:  10,
+		},
+		{
+			name: "all diamonds",
+			hand: []string{"2♦️", "3♦️", "4♦️", "5♦️", "6♦️", "7♦️", "8♦️", "9♦️", "10♦️", "J♦️", "Q♦️", "K♦️", "A♦️"},
+
+			wantDist: ppp.Distribution([]int{0, 13, 0, 0}),
+			wantHCP:  10,
+		},
+		{
 			name: "all hearts",
 			hand: []string{"2❤️", "3❤️", "4❤️", "5❤️", "6❤️", "7❤️", "8❤️", "9❤️", "10❤️", "J❤️", "Q❤️", "K❤️", "A❤️"},
 
@@ -29,20 +43,6 @@ func TestHandDistributionHappy(t *testing.T) {
 			hand: []string{"2♠️", "3♠️", "4♠️", "5♠️", "6♠️", "7♠️", "8♠️", "9♠️", "10♠️", "J♠️", "Q♠️", "K♠️", "A♠️"},
 
 			wantDist: ppp.Distribution([]int{0, 0, 0, 13}),
-			wantHCP:  10,
-		},
-		{
-			name: "all diamonds",
-			hand: []string{"2♦️", "3♦️", "4♦️", "5♦️", "6♦️", "7♦️", "8♦️", "9♦️", "10♦️", "J♦️", "Q♦️", "K♦️", "A♦️"},
-
-			wantDist: ppp.Distribution([]int{0, 13, 0, 0}),
-			wantHCP:  10,
-		},
-		{
-			name: "all clubs",
-			hand: []string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"},
-
-			wantDist: ppp.Distribution([]int{13, 0, 0, 0}),
 			wantHCP:  10,
 		},
 		{
