@@ -14,3 +14,17 @@ conventions:
         - hcp: [11, 17]
         - suit_length:
             hearts: [5, 6]
+  - bid: 1D
+    conditions:
+      all:
+        - rule_of_20: true
+        - hcp: [11, 17]
+        - suit_length:
+            diamonds: [5, 6]
+  - bid: 1C
+    conditions:
+      all:
+        - rule_of_20: true
+        - hcp: [11, 17]
+        - suit_length:
+            clubs: [2, 6]
