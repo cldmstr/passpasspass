@@ -3,12 +3,14 @@ conventions:
   - bid: 1S
     conditions:
       all:
+        - rule_of_20: true
         - hcp: [11, 17]
         - suit_length:
             spades: [5, 6]
   - bid: 1H
     conditions:
       all:
+        - rule_of_20: true
         - hcp: [11, 17]
         - suit_length:
             hearts: [5, 6]
