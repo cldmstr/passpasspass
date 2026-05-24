@@ -2,9 +2,7 @@ package passpasspass
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
-	"time"
 )
 
 // BidAction is one step in the auction.
@@ -89,21 +87,15 @@ type Auction struct {
 	Bids     []BidAction // every bid in order, populated after Run
 	Contract *Bid        // nil = passed out, populated after Run
 	Declarer Direction   // who made the final non-pass bid, populated after Run
-	table    *Table      // internal; holds the convention sheet and inference state
+	cs       *ConventionSheet
 }
 
-// NewAuction randomly deals cards and picks a dealer, returning an Auction ready
-// to run. Call Run to execute the bidding sequence.
-func NewAuction(cs *ConventionSheet) *Auction {
-	now := time.Now().UnixNano()
-	rng := rand.New(rand.NewSource(now))
-	dealer := Direction(rng.Intn(4))
-	hands := NewRandomDealer(now + 1).Deal()
-	t := NewTable(cs, hands)
+// NewAuction creates an Auction with the given dealer direction, convention sheet, and hands.
+func NewAuction(dealer Direction, cs *ConventionSheet, hands []*Hand) *Auction {
 	a := &Auction{
 		Dealer: dealer,
 		Bids:   make([]BidAction, 0, 40),
-		table:  t,
+		cs:     cs,
 	}
 	for i, h := range hands {
 		a.Hands[i] = h
@@ -113,10 +105,54 @@ func NewAuction(cs *ConventionSheet) *Auction {
 
 // Run executes the full bidding sequence and populates Bids, Contract, and Declarer.
 func (a *Auction) Run() {
-	result := a.table.RunAuction(a.Dealer)
-	a.Bids = result.Bids
-	a.Contract = result.Contract
-	a.Declarer = result.Declarer
+	var handRanges [4]HandRange
+	for i := range 4 {
+		handRanges[i] = DefaultHandRange()
+	}
+
+	consecutivePasses := 0
+	current := a.Dealer
+
+	for {
+		pos := current
+		partner := partnerOf(pos)
+		h := a.Hands[int(pos)]
+
+		ctx := &AuctionContext{
+			SelfHand:    h,
+			Position:    pos,
+			History:     a.Bids,
+			Partner:     handRanges[partner],
+			LHO:         handRanges[lhoOf(pos)],
+			RHO:         handRanges[rhoOf(pos)],
+			Partnership: NewPartnershipEval(h, handRanges[partner]),
+		}
+
+		bid := a.cs.Bid(ctx)
+
+		// Bid legality: must be strictly above the current contract
+		if bid != Pass && a.Contract != nil && bid.Value() <= a.Contract.Value() {
+			bid = Pass
+		}
+
+		a.Bids = append(a.Bids, BidAction{Direction: pos, Bid: bid})
+
+		if bid == Pass {
+			consecutivePasses++
+		} else {
+			consecutivePasses = 0
+			a.Contract = bid
+			a.Declarer = pos
+		}
+
+		inferAndUpdate(&handRanges, a.cs, pos, bid)
+		current = (current + 1) % 4
+
+		if (a.Contract == nil && consecutivePasses == 4) ||
+			(a.Contract != nil && consecutivePasses == 3) {
+			break
+		}
+	}
 }
 
 // String shows all four hands followed by the bidding sequence and contract.
@@ -156,4 +192,115 @@ func (a *Auction) String() string {
 	}
 
 	return sb.String()
+}
+
+func inferAndUpdate(handRanges *[4]HandRange, cs *ConventionSheet, pos Direction, bid *Bid) {
+	if bid == Pass {
+		return
+	}
+	for _, conv := range cs.sheet {
+		if conv.Bid != nil && conv.Bid.Value() == bid.Value() {
+			handRanges[pos] = intersectRanges(handRanges[pos], extractBounds(conv.node))
+			return
+		}
+	}
+}
+
+func extractBounds(node conditionNode) HandRange {
+	r := DefaultHandRange()
+	applyBounds(node, &r)
+	return r
+}
+
+func applyBounds(node conditionNode, r *HandRange) {
+	switch {
+	case node.HCP != nil && len(node.HCP) == 2:
+		if node.HCP[0] > r.MinHCP {
+			r.MinHCP = node.HCP[0]
+		}
+		if node.HCP[1] < r.MaxHCP {
+			r.MaxHCP = node.HCP[1]
+		}
+
+	case node.SuitLength != nil:
+		for suitStr, rng := range node.SuitLength {
+			if len(rng) != 2 {
+				continue
+			}
+			s, err := NewSuitFromString(suitStr)
+			if err != nil || int(s) >= 4 {
+				continue
+			}
+			if rng[0] > r.SuitLength[int(s)].Min {
+				r.SuitLength[int(s)].Min = rng[0]
+			}
+			if rng[1] < r.SuitLength[int(s)].Max {
+				r.SuitLength[int(s)].Max = rng[1]
+			}
+		}
+
+	case node.All != nil:
+		for _, child := range node.All {
+			applyBounds(child, r)
+		}
+
+	case node.Any != nil:
+		if len(node.Any) == 0 {
+			return
+		}
+		unionMin, unionMax := MaxHandHCP, 0
+		unionSuitMin := [4]int{HandSize, HandSize, HandSize, HandSize}
+		unionSuitMax := [4]int{0, 0, 0, 0}
+		for _, child := range node.Any {
+			cr := DefaultHandRange()
+			applyBounds(child, &cr)
+			if cr.MinHCP < unionMin {
+				unionMin = cr.MinHCP
+			}
+			if cr.MaxHCP > unionMax {
+				unionMax = cr.MaxHCP
+			}
+			for i := range 4 {
+				if cr.SuitLength[i].Min < unionSuitMin[i] {
+					unionSuitMin[i] = cr.SuitLength[i].Min
+				}
+				if cr.SuitLength[i].Max > unionSuitMax[i] {
+					unionSuitMax[i] = cr.SuitLength[i].Max
+				}
+			}
+		}
+		if unionMin > r.MinHCP {
+			r.MinHCP = unionMin
+		}
+		if unionMax < r.MaxHCP {
+			r.MaxHCP = unionMax
+		}
+		for i := range 4 {
+			if unionSuitMin[i] > r.SuitLength[i].Min {
+				r.SuitLength[i].Min = unionSuitMin[i]
+			}
+			if unionSuitMax[i] < r.SuitLength[i].Max {
+				r.SuitLength[i].Max = unionSuitMax[i]
+			}
+		}
+	}
+}
+
+func intersectRanges(a, b HandRange) HandRange {
+	r := a
+	if b.MinHCP > r.MinHCP {
+		r.MinHCP = b.MinHCP
+	}
+	if b.MaxHCP < r.MaxHCP {
+		r.MaxHCP = b.MaxHCP
+	}
+	for i := range 4 {
+		if b.SuitLength[i].Min > r.SuitLength[i].Min {
+			r.SuitLength[i].Min = b.SuitLength[i].Min
+		}
+		if b.SuitLength[i].Max < r.SuitLength[i].Max {
+			r.SuitLength[i].Max = b.SuitLength[i].Max
+		}
+	}
+	return r
 }

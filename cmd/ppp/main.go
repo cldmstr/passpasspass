@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"time"
 
 	ppp "github.com/cldmstr/passpasspass"
 )
@@ -22,7 +23,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	auction := ppp.NewAuction(cs)
-	auction.Run()
+	dealer := ppp.NewRandomDealer(time.Now().UnixNano())
+	table := ppp.NewTable(cs, dealer)
+	auction := table.RunAuction()
 	fmt.Print(auction)
 }
