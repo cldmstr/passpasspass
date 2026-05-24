@@ -44,7 +44,7 @@ func TestRuleOfTwentyCondition(t *testing.T) {
 			is := is.New(t)
 			hand, err := ppp.NewHandFromStrings(tc.hand)
 			is.NoErr(err)
-			willBid, _ := sut.NextBid(hand)
+			willBid, _ := sut.NextBid(&ppp.AuctionContext{SelfHand: hand})
 			is.Equal(tc.shouldBid, willBid)
 		})
 	}
@@ -114,7 +114,7 @@ func TestBalancedDistributionCondition(t *testing.T) {
 			hand, err := ppp.NewHandFromStrings(tc.hand)
 			is.NoErr(err)
 
-			willBid, bid := sut.NextBid(hand)
+			willBid, bid := sut.NextBid(&ppp.AuctionContext{SelfHand: hand})
 			is.Equal(tc.shouldBid, willBid)
 			is.Equal(tc.wantBid, bid.String())
 		})

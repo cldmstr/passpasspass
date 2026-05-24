@@ -21,6 +21,10 @@ func writeTempFile(t *testing.T, dir, name, content string) string {
 	return path
 }
 
+func ctx(hand *ppp.Hand) *ppp.AuctionContext {
+	return &ppp.AuctionContext{SelfHand: hand}
+}
+
 func TestLoader_LoadCard_HCPCondition(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
@@ -38,12 +42,12 @@ conventions:
 	inRange, _ := ppp.NewHandFromStrings([]string{
 		"A♣️", "K♣️", "Q♣️", "2♣️", "A♦️", "K♦️", "2♦️", "3♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️",
 	})
-	is.Equal("1NT", cs.Bid(inRange).String())
+	is.Equal("1NT", cs.Bid(ctx(inRange)).String())
 
 	tooLow, _ := ppp.NewHandFromStrings([]string{
 		"A♣️", "K♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "5♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️",
 	})
-	is.Equal("Pass", cs.Bid(tooLow).String())
+	is.Equal("Pass", cs.Bid(ctx(tooLow)).String())
 }
 
 func TestLoader_LoadCard_BalancedCondition(t *testing.T) {
@@ -65,12 +69,12 @@ conventions:
 	balanced, _ := ppp.NewHandFromStrings([]string{
 		"A♣️", "K♣️", "Q♣️", "2♣️", "A♦️", "K♦️", "2♦️", "3♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️",
 	})
-	is.Equal("1NT", cs.Bid(balanced).String())
+	is.Equal("1NT", cs.Bid(ctx(balanced)).String())
 
 	unbalanced, _ := ppp.NewHandFromStrings([]string{
 		"A♣️", "K♣️", "Q♣️", "J♣️", "10♣️", "9♣️", "A♦️", "K♦️", "Q♦️", "2❤️", "3❤️", "2♠️", "3♠️",
 	})
-	is.Equal("Pass", cs.Bid(unbalanced).String())
+	is.Equal("Pass", cs.Bid(ctx(unbalanced)).String())
 }
 
 func TestLoader_LoadCard_SuitLengthCondition(t *testing.T) {
@@ -93,12 +97,12 @@ conventions:
 	fiveHearts, _ := ppp.NewHandFromStrings([]string{
 		"A♣️", "K♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "A❤️", "K❤️", "Q❤️", "J❤️", "10❤️", "2♠️",
 	})
-	is.Equal("1❤️", cs.Bid(fiveHearts).String())
+	is.Equal("1❤️", cs.Bid(ctx(fiveHearts)).String())
 
 	fourHearts, _ := ppp.NewHandFromStrings([]string{
 		"A♣️", "K♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "5♦️", "A❤️", "K❤️", "Q❤️", "J❤️", "2♠️",
 	})
-	is.Equal("Pass", cs.Bid(fourHearts).String())
+	is.Equal("Pass", cs.Bid(ctx(fourHearts)).String())
 }
 
 func TestLoader_LoadCard_AnyCondition(t *testing.T) {
@@ -121,13 +125,13 @@ conventions:
 	weak, _ := ppp.NewHandFromStrings([]string{
 		"J♣️", "2♣️", "3♣️", "4♣️", "Q♦️", "2♦️", "3♦️", "4♦️", "K❤️", "2❤️", "3❤️", "2♠️", "3♠️",
 	})
-	is.Equal("2♦️", cs.Bid(weak).String())
+	is.Equal("2♦️", cs.Bid(ctx(weak)).String())
 
 	// 16 HCP — matches neither [6,9] nor [23,24]
 	middle, _ := ppp.NewHandFromStrings([]string{
 		"A♣️", "K♣️", "Q♣️", "2♣️", "A♦️", "K♦️", "2♦️", "3♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️",
 	})
-	is.Equal("Pass", cs.Bid(middle).String())
+	is.Equal("Pass", cs.Bid(ctx(middle)).String())
 }
 
 func TestLoader_LoadCard_Includes(t *testing.T) {
@@ -163,7 +167,7 @@ conventions:
 	hand, _ := ppp.NewHandFromStrings([]string{
 		"A♣️", "K♣️", "Q♣️", "2♣️", "A♦️", "K♦️", "2♦️", "3♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️",
 	})
-	is.Equal("1NT", cs.Bid(hand).String())
+	is.Equal("1NT", cs.Bid(ctx(hand)).String())
 }
 
 func TestLoader_LoadCard_ErrorOnMissingInclude(t *testing.T) {
@@ -248,7 +252,7 @@ func TestLoader_RoundTrip_TwoOverOne(t *testing.T) {
 			is := is.New(t)
 			hand, err := ppp.NewHandFromStrings(tc.hand)
 			is.NoErr(err)
-			is.Equal(tc.want, cs.Bid(hand).String())
+			is.Equal(tc.want, cs.Bid(ctx(hand)).String())
 		})
 	}
 }
@@ -303,7 +307,7 @@ func TestLoader_RoundTrip_Colin(t *testing.T) {
 			is := is.New(t)
 			hand, err := ppp.NewHandFromStrings(tc.hand)
 			is.NoErr(err)
-			is.Equal(tc.want, cs.Bid(hand).String())
+			is.Equal(tc.want, cs.Bid(ctx(hand)).String())
 		})
 	}
 }

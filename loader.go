@@ -61,12 +61,29 @@ func (yc *yamlConvention) UnmarshalYAML(value *yaml.Node) error {
 // conditionNode is a polymorphic YAML condition. Exactly one field is
 // populated after unmarshaling.
 type conditionNode struct {
-	HCP        []int                `yaml:"hcp"`
-	Balanced   *bool                `yaml:"balanced"`
-	RuleOf20   *bool                `yaml:"rule_of_20"`
-	SuitLength map[string][]int     `yaml:"suit_length"`
-	All        []conditionNode      `yaml:"all"`
-	Any        []conditionNode      `yaml:"any"`
+	HCP        []int            `yaml:"hcp"`
+	Balanced   *bool            `yaml:"balanced"`
+	RuleOf20   *bool            `yaml:"rule_of_20"`
+	SuitLength map[string][]int `yaml:"suit_length"`
+	All        []conditionNode  `yaml:"all"`
+	Any        []conditionNode  `yaml:"any"`
+
+	// history-aware
+	PartnerBid  *string `yaml:"partner_bid"`
+	RHOBid      *string `yaml:"rho_bid"`
+	LHOBid      *string `yaml:"lho_bid"`
+	NoPriorBids *bool   `yaml:"no_prior_bids"`
+
+	// partnership evaluation
+	PartnershipHCP []int `yaml:"partnership_hcp"`
+	MajorFit       []int `yaml:"major_fit"`
+	MinorFit       []int `yaml:"minor_fit"`
+	HeartFit       []int `yaml:"heart_fit"`
+	SpadeFit       []int `yaml:"spade_fit"`
+
+	// opponent HCP bounds
+	LHOMinHCP *int `yaml:"lho_min_hcp"`
+	RHOMinHCP *int `yaml:"rho_min_hcp"`
 }
 
 func buildCondition(n conditionNode) (Condition, error) {
@@ -117,6 +134,54 @@ func buildCondition(n conditionNode) (Condition, error) {
 		}
 		return NewMultiCondition(conditions...), nil
 
+	case n.PartnerBid != nil:
+		return NewPartnerBidCondition(*n.PartnerBid), nil
+
+	case n.RHOBid != nil:
+		return NewRHOBidCondition(*n.RHOBid), nil
+
+	case n.LHOBid != nil:
+		return NewLHOBidCondition(*n.LHOBid), nil
+
+	case n.NoPriorBids != nil:
+		return NewNoPriorBidsCondition(), nil
+
+	case n.PartnershipHCP != nil:
+		if len(n.PartnershipHCP) != 2 {
+			return nil, fmt.Errorf("partnership_hcp must have exactly 2 values [min, max]")
+		}
+		return NewPartnershipHCPCondition(n.PartnershipHCP[0], n.PartnershipHCP[1]), nil
+
+	case n.MajorFit != nil:
+		if len(n.MajorFit) != 2 {
+			return nil, fmt.Errorf("major_fit must have exactly 2 values [min, max]")
+		}
+		return NewMajorFitCondition(n.MajorFit[0], n.MajorFit[1]), nil
+
+	case n.MinorFit != nil:
+		if len(n.MinorFit) != 2 {
+			return nil, fmt.Errorf("minor_fit must have exactly 2 values [min, max]")
+		}
+		return NewMinorFitCondition(n.MinorFit[0], n.MinorFit[1]), nil
+
+	case n.HeartFit != nil:
+		if len(n.HeartFit) != 2 {
+			return nil, fmt.Errorf("heart_fit must have exactly 2 values [min, max]")
+		}
+		return NewHeartFitCondition(n.HeartFit[0], n.HeartFit[1]), nil
+
+	case n.SpadeFit != nil:
+		if len(n.SpadeFit) != 2 {
+			return nil, fmt.Errorf("spade_fit must have exactly 2 values [min, max]")
+		}
+		return NewSpadeFitCondition(n.SpadeFit[0], n.SpadeFit[1]), nil
+
+	case n.LHOMinHCP != nil:
+		return NewLHOMinHCPCondition(*n.LHOMinHCP), nil
+
+	case n.RHOMinHCP != nil:
+		return NewRHOMinHCPCondition(*n.RHOMinHCP), nil
+
 	default:
 		return nil, fmt.Errorf("empty condition node")
 	}
@@ -133,7 +198,9 @@ func buildConventions(entries []yamlConvention) ([]*Convention, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid conditions for bid %q: %w", entry.Bid, err)
 		}
-		conventions = append(conventions, NewConvention(bid, condition))
+		c := NewConvention(bid, condition)
+		c.node = entry.Conditions
+		conventions = append(conventions, c)
 	}
 	return conventions, nil
 }

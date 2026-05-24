@@ -144,7 +144,7 @@ func TestConvention_NextBid(t *testing.T) {
 			hand, err := ppp.NewHandFromStrings(tc.hand)
 			is.NoErr(err)
 
-			willBid, bid := sut.NextBid(hand)
+			willBid, bid := sut.NextBid(&ppp.AuctionContext{SelfHand: hand})
 			is.Equal(tc.shouldBid, willBid)
 			is.Equal(tc.wantBid, bid.String())
 		})
