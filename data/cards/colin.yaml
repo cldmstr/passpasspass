@@ -1,0 +1,16 @@
+name: Two-over-one Colin Special 
+includes:
+  - multi_two_diamond
+  - strong_two_clubs
+  - strong_notrump
+  - tartan
+  - five_card_major
+conventions:
+  - bid: 2NT
+    conditions:
+      all:
+        - hcp: [10, 12]
+        - suit_length:
+            clubs: [5, 13]
+        - suit_length:
+            diamonds: [5, 13]

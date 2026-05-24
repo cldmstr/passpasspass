@@ -1,0 +1,28 @@
+name: tartan
+conventions:
+  - bid: 2H
+    conditions:
+      all:
+        - hcp: [11, 15]
+        - suit_length:
+            hearts: [5, 13]
+        - any:
+            - suit_length:
+                clubs: [5, 13]
+            - suit_length:
+                diamonds: [5, 13]
+            - suit_length:
+                spades: [5, 13]
+  - bid: 2S
+    conditions:
+      all:
+        - hcp: [11, 15]
+        - suit_length:
+            spades: [5, 13]
+        - any:
+            - suit_length:
+                clubs: [5, 13]
+            - suit_length:
+                diamonds: [5, 13]
+            - suit_length:
+                hearts: [5, 13]

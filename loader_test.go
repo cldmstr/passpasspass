@@ -252,3 +252,58 @@ func TestLoader_RoundTrip_TwoOverOne(t *testing.T) {
 		})
 	}
 }
+
+func TestLoader_RoundTrip_Colin(t *testing.T) {
+	is := is.New(t)
+
+	dataFS, err := fs.Sub(ppp.DefaultData, "data")
+	is.NoErr(err)
+	cs, err := ppp.NewLoader(dataFS).LoadCard("cards/colin.yaml")
+	is.NoErr(err)
+
+	tt := []struct {
+		name string
+		hand []string
+		want string
+	}{
+		{
+			name: "tartan 2H - 5+ hearts and 5+ clubs",
+			hand: []string{"K❤️", "Q❤️", "J❤️", "2❤️", "3❤️", "A♣️", "K♣️", "2♣️", "3♣️", "4♣️", "2♦️", "3♦️", "2♠️"},
+			want: "2❤️",
+		},
+		{
+			name: "tartan 2S - 5+ spades and 5+ diamonds",
+			hand: []string{"K♠️", "Q♠️", "J♠️", "2♠️", "3♠️", "A♦️", "K♦️", "2♦️", "3♦️", "4♦️", "2♣️", "3♣️", "2❤️"},
+			want: "2♠️",
+		},
+		{
+			name: "1H not tartan - 5 hearts but no 5-card side suit",
+			hand: []string{"A❤️", "K❤️", "2❤️", "3❤️", "4❤️", "Q♣️", "J♣️", "2♣️", "3♣️", "Q♦️", "2♦️", "3♦️", "2♠️"},
+			want: "1❤️",
+		},
+		{
+			name: "2NT - 5-5 minors 10 HCP",
+			hand: []string{"K♣️", "Q♣️", "2♣️", "3♣️", "4♣️", "A♦️", "J♦️", "2♦️", "3♦️", "4♦️", "2❤️", "2♠️", "3♠️"},
+			want: "2NT",
+		},
+		{
+			name: "1NT - balanced 16 HCP",
+			hand: []string{"A♣️", "K♣️", "Q♣️", "2♣️", "A♦️", "K♦️", "2♦️", "3♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️"},
+			want: "1NT",
+		},
+		{
+			name: "pass - too few points",
+			hand: []string{"2♣️", "3♣️", "4♣️", "5♣️", "2♦️", "3♦️", "4♦️", "5♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️"},
+			want: "Pass",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			hand, err := ppp.NewHandFromStrings(tc.hand)
+			is.NoErr(err)
+			is.Equal(tc.want, cs.Bid(hand).String())
+		})
+	}
+}
