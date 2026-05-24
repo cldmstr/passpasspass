@@ -29,11 +29,11 @@ func NewTable(cs *ConventionSheet, hands []*Hand) *Table {
 }
 
 func (t Table) String() string {
-	directionFormat := "%s (%d):\nBid: %s\n%s\n"
+	directionFormat := "%s (%d : %s):\nBid: %s\n%s\n"
 	sb := strings.Builder{}
 	for i, d := range allDirections {
-		hand := t.hands[int(i)]
-		sb.WriteString(fmt.Sprintf(directionFormat, d, hand.HCP(), t.cs.Bid(hand), hand))
+		h := t.hands[int(i)]
+		sb.WriteString(fmt.Sprintf(directionFormat, d, h.HCP(), h.Distribution(), t.cs.Bid(h), h))
 	}
 	return sb.String()
 }

@@ -3,17 +3,32 @@ package passpasspass
 import (
 	"fmt"
 	"slices"
+	"strconv"
+	"strings"
 )
 
 const (
-	HandSize   int = 13
-	MaxHandHCP int = 37
+	DistributionLength int = 4
+	HandSize           int = 13
+	MaxHandHCP         int = 37
 )
 
 type Distribution []int
 
 func NewDistribution(clubs, diamonds, hearts, spades int) Distribution {
 	return []int{clubs, diamonds, hearts, spades}
+}
+
+func (d Distribution) String() string {
+	if len(d) != DistributionLength {
+		return "[invalid distribution]"
+	}
+	distStrings := make([]string, DistributionLength)
+	for i, s := range d {
+		distStrings[i] = strconv.Itoa(s)
+	}
+
+	return fmt.Sprintf("[%s]", strings.Join(distStrings, ","))
 }
 
 type Description struct {
