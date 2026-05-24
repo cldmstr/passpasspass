@@ -120,3 +120,162 @@ func TestBalancedDistributionCondition(t *testing.T) {
 		})
 	}
 }
+
+func TestNewNoPriorBidsCondition(t *testing.T) {
+	hand := mustHand([]string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"})
+	conv := ppp.NewConvention(ppp.NewBid(1, ppp.NoTrump), ppp.NewNoPriorBidsCondition())
+
+	tt := []struct {
+		name      string
+		history   []ppp.BidAction
+		shouldBid bool
+	}{
+		{
+			name:      "empty history",
+			history:   nil,
+			shouldBid: true,
+		},
+		{
+			name:      "only passes before",
+			history:   []ppp.BidAction{{Direction: ppp.West, Bid: ppp.Pass}},
+			shouldBid: true,
+		},
+		{
+			name:      "real bid in history",
+			history:   []ppp.BidAction{{Direction: ppp.West, Bid: ppp.NewBid(1, ppp.Clubs)}},
+			shouldBid: false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			willBid, _ := conv.NextBid(&ppp.AuctionContext{
+				SelfHand: hand,
+				Position: ppp.North,
+				History:  tc.history,
+			})
+			is.Equal(tc.shouldBid, willBid)
+		})
+	}
+}
+
+func TestNewPartnerBidCondition(t *testing.T) {
+	hand := mustHand([]string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"})
+	// Jacoby transfer — fires only after partner opens 1NT. South's partner is North.
+	conv := ppp.NewConvention(ppp.NewBid(2, ppp.Hearts), ppp.NewPartnerBidCondition("1NT"))
+
+	tt := []struct {
+		name      string
+		history   []ppp.BidAction
+		shouldBid bool
+	}{
+		{
+			name:      "partner bid 1NT",
+			history:   []ppp.BidAction{{Direction: ppp.North, Bid: ppp.NewBid(1, ppp.NoTrump)}},
+			shouldBid: true,
+		},
+		{
+			name:      "partner bid something else",
+			history:   []ppp.BidAction{{Direction: ppp.North, Bid: ppp.NewBid(1, ppp.Clubs)}},
+			shouldBid: false,
+		},
+		{
+			name:      "partner has not bid",
+			history:   nil,
+			shouldBid: false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			willBid, _ := conv.NextBid(&ppp.AuctionContext{
+				SelfHand: hand,
+				Position: ppp.South, // North is partner
+				History:  tc.history,
+			})
+			is.Equal(tc.shouldBid, willBid)
+		})
+	}
+}
+
+func TestNewRHOBidCondition(t *testing.T) {
+	hand := mustHand([]string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"})
+	// South's RHO is East: rhoOf(South=2) = (2+3)%4 = 1 = East.
+	conv := ppp.NewConvention(ppp.NewBid(1, ppp.NoTrump), ppp.NewRHOBidCondition("1C"))
+
+	tt := []struct {
+		name      string
+		history   []ppp.BidAction
+		shouldBid bool
+	}{
+		{
+			name:      "RHO bid 1C",
+			history:   []ppp.BidAction{{Direction: ppp.East, Bid: ppp.NewBid(1, ppp.Clubs)}},
+			shouldBid: true,
+		},
+		{
+			name:      "RHO bid something else",
+			history:   []ppp.BidAction{{Direction: ppp.East, Bid: ppp.NewBid(1, ppp.Hearts)}},
+			shouldBid: false,
+		},
+		{
+			name:      "RHO has not bid",
+			history:   nil,
+			shouldBid: false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			willBid, _ := conv.NextBid(&ppp.AuctionContext{
+				SelfHand: hand,
+				Position: ppp.South,
+				History:  tc.history,
+			})
+			is.Equal(tc.shouldBid, willBid)
+		})
+	}
+}
+
+func TestNewLHOBidCondition(t *testing.T) {
+	hand := mustHand([]string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"})
+	// South's LHO is West: lhoOf(South=2) = (2+1)%4 = 3 = West.
+	conv := ppp.NewConvention(ppp.NewBid(1, ppp.NoTrump), ppp.NewLHOBidCondition("1C"))
+
+	tt := []struct {
+		name      string
+		history   []ppp.BidAction
+		shouldBid bool
+	}{
+		{
+			name:      "LHO bid 1C",
+			history:   []ppp.BidAction{{Direction: ppp.West, Bid: ppp.NewBid(1, ppp.Clubs)}},
+			shouldBid: true,
+		},
+		{
+			name:      "LHO bid something else",
+			history:   []ppp.BidAction{{Direction: ppp.West, Bid: ppp.NewBid(1, ppp.Hearts)}},
+			shouldBid: false,
+		},
+		{
+			name:      "LHO has not bid",
+			history:   nil,
+			shouldBid: false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			willBid, _ := conv.NextBid(&ppp.AuctionContext{
+				SelfHand: hand,
+				Position: ppp.South,
+				History:  tc.history,
+			})
+			is.Equal(tc.shouldBid, willBid)
+		})
+	}
+}
