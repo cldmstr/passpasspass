@@ -74,6 +74,113 @@ func TestAuction_Run_SingleOpener(t *testing.T) {
 	is.Equal(ppp.Pass, a.Bids[3].Bid)       // West: 22 HCP > ceiling
 }
 
+func TestNewPartnershipEval(t *testing.T) {
+	is := is.New(t)
+
+	// Self: clubs void, 4-3-3-3, 10 HCP (A♣K♣Q♣J♣).
+	self := mustHand([]string{
+		"A♣️", "K♣️", "Q♣️", "J♣️",
+		"2♦️", "3♦️", "4♦️",
+		"2❤️", "3❤️", "4❤️",
+		"2♠️", "3♠️", "4♠️",
+	})
+
+	partner := ppp.HandRange{
+		MinHCP: 6, MaxHCP: 10,
+		SuitLength: [4]ppp.SuitRange{
+			{Min: 2, Max: 5}, // clubs
+			{Min: 2, Max: 4}, // diamonds
+			{Min: 2, Max: 4}, // hearts
+			{Min: 2, Max: 4}, // spades
+		},
+	}
+
+	eval := ppp.NewPartnershipEval(self, partner)
+
+	is.Equal(16, eval.MinCombinedHCP)                                     // 10 + 6
+	is.Equal(20, eval.MaxCombinedHCP)                                     // 10 + 10
+	is.Equal(ppp.SuitRange{Min: 6, Max: 9}, eval.SuitFit[ppp.Clubs])     // 4 + [2,5]
+	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Diamonds])  // 3 + [2,4]
+	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Hearts])    // 3 + [2,4]
+	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Spades])    // 3 + [2,4]
+}
+
+func TestPartnershipEval_BestMajorFit(t *testing.T) {
+	tt := []struct {
+		name   string
+		hearts ppp.SuitRange
+		spades ppp.SuitRange
+		want   ppp.SuitRange
+	}{
+		{
+			name:   "spades have higher max",
+			hearts: ppp.SuitRange{Min: 7, Max: 9},
+			spades: ppp.SuitRange{Min: 8, Max: 11},
+			want:   ppp.SuitRange{Min: 8, Max: 11},
+		},
+		{
+			name:   "hearts have higher max",
+			hearts: ppp.SuitRange{Min: 9, Max: 11},
+			spades: ppp.SuitRange{Min: 7, Max: 9},
+			want:   ppp.SuitRange{Min: 9, Max: 11},
+		},
+		{
+			name:   "equal max favors spades",
+			hearts: ppp.SuitRange{Min: 7, Max: 9},
+			spades: ppp.SuitRange{Min: 6, Max: 9},
+			want:   ppp.SuitRange{Min: 6, Max: 9},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			eval := ppp.PartnershipEval{
+				SuitFit: [4]ppp.SuitRange{{}, {}, tc.hearts, tc.spades},
+			}
+			is.Equal(tc.want, eval.BestMajorFit())
+		})
+	}
+}
+
+func TestPartnershipEval_BestMinorFit(t *testing.T) {
+	tt := []struct {
+		name     string
+		clubs    ppp.SuitRange
+		diamonds ppp.SuitRange
+		want     ppp.SuitRange
+	}{
+		{
+			name:     "diamonds have higher max",
+			clubs:    ppp.SuitRange{Min: 6, Max: 8},
+			diamonds: ppp.SuitRange{Min: 7, Max: 10},
+			want:     ppp.SuitRange{Min: 7, Max: 10},
+		},
+		{
+			name:     "clubs have higher max",
+			clubs:    ppp.SuitRange{Min: 8, Max: 10},
+			diamonds: ppp.SuitRange{Min: 6, Max: 8},
+			want:     ppp.SuitRange{Min: 8, Max: 10},
+		},
+		{
+			name:     "equal max favors diamonds",
+			clubs:    ppp.SuitRange{Min: 7, Max: 9},
+			diamonds: ppp.SuitRange{Min: 6, Max: 9},
+			want:     ppp.SuitRange{Min: 6, Max: 9},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			eval := ppp.PartnershipEval{
+				SuitFit: [4]ppp.SuitRange{tc.clubs, tc.diamonds, {}, {}},
+			}
+			is.Equal(tc.want, eval.BestMinorFit())
+		})
+	}
+}
+
 func TestAuction_Run_BidLegalityEnforcement(t *testing.T) {
 	is := is.New(t)
 
