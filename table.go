@@ -2,9 +2,7 @@ package passpasspass
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
-	"time"
 )
 
 const (
@@ -48,65 +46,6 @@ func (t Table) String() string {
 		}
 		sb.WriteString(fmt.Sprintf(directionFormat, d, h.HCP(), h.Distribution(), t.cs.Bid(ctx), h))
 	}
-	return sb.String()
-}
-
-// Auction records a complete bridge auction: the deal, all bids, and the final contract.
-type Auction struct {
-	Dealer   Direction    // who opened the bidding
-	Hands    [4]*Hand     // hands indexed by Direction (North=0…West=3)
-	Bids     []BidAction  // every bid in order
-	Contract *Bid         // nil = passed out
-	Declarer Direction    // who made the final non-pass bid
-}
-
-// NewAuction deals a random hand, picks a random dealer, runs the auction, and
-// returns the completed Auction. The convention sheet cs governs all bidding.
-func NewAuction(cs *ConventionSheet) *Auction {
-	now := time.Now().UnixNano()
-	rng := rand.New(rand.NewSource(now))
-	dealer := Direction(rng.Intn(4))
-	hands := NewRandomDealer(now + 1).Deal()
-	t := NewTable(cs, hands)
-	return t.RunAuction(dealer)
-}
-
-// String shows all four hands followed by the bidding sequence and contract.
-func (a *Auction) String() string {
-	var sb strings.Builder
-
-	for i, dir := range allDirections {
-		h := a.Hands[i]
-		sb.WriteString(fmt.Sprintf("%s (%d HCP %s):\n%s\n", dir, h.HCP(), h.Distribution(), h))
-	}
-
-	sb.WriteString(fmt.Sprintf("Dealer: %s\n", allDirections[a.Dealer]))
-	sb.WriteString("North\tEast\tSouth\tWest\n")
-
-	col := int(a.Dealer)
-	for i := 0; i < col; i++ {
-		sb.WriteString("\t")
-	}
-	for _, ba := range a.Bids {
-		sb.WriteString(ba.Bid.String())
-		col++
-		if col == 4 {
-			sb.WriteString("\n")
-			col = 0
-		} else {
-			sb.WriteString("\t")
-		}
-	}
-	if col != 0 {
-		sb.WriteString("\n")
-	}
-
-	if a.Contract == nil {
-		sb.WriteString("\nPassed out\n")
-	} else {
-		sb.WriteString(fmt.Sprintf("\nContract: %s by %s\n", a.Contract, allDirections[a.Declarer]))
-	}
-
 	return sb.String()
 }
 

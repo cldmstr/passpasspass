@@ -22,5 +22,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Print(ppp.NewAuction(cs))
+	auction := ppp.NewAuction(cs)
+	auction.Run()
+	fmt.Print(auction)
 }
