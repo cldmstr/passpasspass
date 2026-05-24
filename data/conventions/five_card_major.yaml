@@ -3,6 +3,7 @@ conventions:
   - bid: 1S
     conditions:
       all:
+        - no_prior_bids: true
         - rule_of_20: true
         - hcp: [11, 17]
         - suit_length:
@@ -10,6 +11,7 @@ conventions:
   - bid: 1H
     conditions:
       all:
+        - no_prior_bids: true
         - rule_of_20: true
         - hcp: [11, 17]
         - suit_length:
@@ -17,6 +19,7 @@ conventions:
   - bid: 1D
     conditions:
       all:
+        - no_prior_bids: true
         - rule_of_20: true
         - hcp: [11, 17]
         - suit_length:
@@ -24,6 +27,7 @@ conventions:
   - bid: 1C
     conditions:
       all:
+        - no_prior_bids: true
         - rule_of_20: true
         - hcp: [11, 17]
         - suit_length:

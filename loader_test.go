@@ -25,6 +25,16 @@ func ctx(hand *ppp.Hand) *ppp.AuctionContext {
 	return &ppp.AuctionContext{SelfHand: hand}
 }
 
+func ctxAfterPartnerNT(hand *ppp.Hand) *ppp.AuctionContext {
+	return &ppp.AuctionContext{
+		SelfHand: hand,
+		Position: ppp.South,
+		History: []ppp.BidAction{
+			{Direction: ppp.North, Bid: ppp.NewBid(1, ppp.NoTrump)},
+		},
+	}
+}
+
 func TestLoader_LoadCard_HCPCondition(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
@@ -258,6 +268,7 @@ func TestLoader_RoundTrip_TwoOverOne(t *testing.T) {
 }
 
 func TestLoader_RoundTrip_Colin(t *testing.T) {
+
 	is := is.New(t)
 
 	dataFS, err := fs.Sub(ppp.DefaultData, "data")
@@ -308,6 +319,92 @@ func TestLoader_RoundTrip_Colin(t *testing.T) {
 			hand, err := ppp.NewHandFromStrings(tc.hand)
 			is.NoErr(err)
 			is.Equal(tc.want, cs.Bid(ctx(hand)).String())
+		})
+	}
+}
+
+func TestLoader_RoundTrip_Colin_1NTResponses(t *testing.T) {
+	is := is.New(t)
+
+	dataFS, err := fs.Sub(ppp.DefaultData, "data")
+	is.NoErr(err)
+	cs, err := ppp.NewLoader(dataFS).LoadCard("cards/colin.yaml")
+	is.NoErr(err)
+
+	tt := []struct {
+		name    string
+		hand    []string
+		want    string
+		opening bool
+	}{
+		{
+			// 5 hearts + 5 clubs, 11 HCP: Jacoby fires in response, not Tartan
+			name: "Jacoby transfer to hearts - 5+ hearts",
+			hand: []string{"K❤️", "Q❤️", "J❤️", "2❤️", "3❤️", "A♣️", "K♣️", "2♣️", "3♣️", "4♣️", "2♦️", "3♦️", "2♠️"},
+			want: "2♦️",
+		},
+		{
+			// exactly 5 spades, 8 HCP: Jacoby fires before Baron
+			name: "Jacoby transfer to spades - exactly 5 spades",
+			hand: []string{"A♠️", "K♠️", "J♠️", "2♠️", "3♠️", "2♣️", "3♣️", "4♣️", "2♦️", "3♦️", "4♦️", "2❤️", "3❤️"},
+			want: "2❤️",
+		},
+		{
+			// 10 HCP, 4-4-3-2 balanced, no 4-card major — direct 3NT
+			// K♣️(3)+J♣️(1)+Q♦️(2)+J♦️(1)+Q❤️(2)+J♠️(1) = 10 HCP
+			name: "3NT - balanced 10 HCP no major",
+			hand: []string{"K♣️", "J♣️", "2♣️", "3♣️", "Q♦️", "J♦️", "2♦️", "3♦️", "Q❤️", "2❤️", "3❤️", "J♠️", "2♠️"},
+			want: "3NT",
+		},
+		{
+			// 10 HCP, 4-4-4-1: not balanced (singleton), so 3NT fails; 4 hearts → Baron
+			// A♣️(4)+K♣️(3)+K❤️(3) = 10 HCP
+			name: "Baron - 10 HCP with 4-card major",
+			hand: []string{"A♣️", "K♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "5♦️", "K❤️", "2❤️", "3❤️", "4❤️", "2♠️"},
+			want: "2♠️",
+		},
+		{
+			// 4 HCP, 4 hearts: below Baron threshold (8 HCP), Stayman fires
+			// J♣️(1)+J❤️(1)+Q❤️(2) = 4 HCP
+			name: "Stayman - 4+ major below Baron threshold",
+			hand: []string{"J♣️", "2♣️", "3♣️", "4♣️", "2♦️", "3♦️", "4♦️", "5♦️", "J❤️", "Q❤️", "2❤️", "3❤️", "2♠️"},
+			want: "2♣️",
+		},
+		{
+			// 6 HCP, 6 spades: 6 ≠ 5 so Jacoby fails; weakness transfer fires
+			// A♠️(4)+Q♠️(2) = 6 HCP
+			name: "weakness transfer to spades - 6+ spades 6-9 HCP",
+			hand: []string{"A♠️", "Q♠️", "2♠️", "3♠️", "4♠️", "5♠️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "2❤️", "3❤️"},
+			want: "2NT",
+		},
+		{
+			// 6 HCP, 6 diamonds: transfer to diamonds fires
+			// A♦️(4)+Q♦️(2) = 6 HCP
+			name: "transfer to diamonds - 6+ diamonds 6-9 HCP",
+			hand: []string{"A♦️", "Q♦️", "2♦️", "3♦️", "4♦️", "5♦️", "2♣️", "3♣️", "4♣️", "2❤️", "3❤️", "2♠️", "3♠️"},
+			want: "3♣️",
+		},
+		{
+			// Confirm openings still fire with no history (no_prior_bids check)
+			name:    "opening 1NT still fires with no history",
+			hand:    []string{"A♣️", "K♣️", "Q♣️", "2♣️", "A♦️", "K♦️", "2♦️", "3♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️"},
+			want:    "1NT",
+			opening: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			hand, err := ppp.NewHandFromStrings(tc.hand)
+			is.NoErr(err)
+			var bidCtx *ppp.AuctionContext
+			if tc.opening {
+				bidCtx = ctx(hand)
+			} else {
+				bidCtx = ctxAfterPartnerNT(hand)
+			}
+			is.Equal(tc.want, cs.Bid(bidCtx).String())
 		})
 	}
 }

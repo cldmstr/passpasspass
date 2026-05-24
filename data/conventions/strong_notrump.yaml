@@ -3,5 +3,6 @@ conventions:
   - bid: 1NT
     conditions:
       all:
+        - no_prior_bids: true
         - balanced: true
         - hcp: [15, 17]

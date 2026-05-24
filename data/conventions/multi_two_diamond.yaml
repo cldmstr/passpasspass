@@ -2,16 +2,18 @@ name: multi_two_diamond
 conventions:
   - bid: 2D
     conditions:
-      any:
-        - all:
-            - hcp: [23, 24]
-            - balanced: true
-        - all:
-            - hcp: [6, 9]
-            - suit_length:
-                hearts: [6, 13]
-        - all:
-            - hcp: [6, 9]
-            - suit_length:
-                spades: [6, 13]
-        - hcp: [27, 40]
+      all:
+        - no_prior_bids: true
+        - any:
+            - all:
+                - hcp: [23, 24]
+                - balanced: true
+            - all:
+                - hcp: [6, 9]
+                - suit_length:
+                    hearts: [6, 13]
+            - all:
+                - hcp: [6, 9]
+                - suit_length:
+                    spades: [6, 13]
+            - hcp: [27, 40]

@@ -3,6 +3,7 @@ conventions:
   - bid: 2H
     conditions:
       all:
+        - no_prior_bids: true
         - hcp: [11, 15]
         - suit_length:
             hearts: [5, 13]
@@ -16,6 +17,7 @@ conventions:
   - bid: 2S
     conditions:
       all:
+        - no_prior_bids: true
         - hcp: [11, 15]
         - suit_length:
             spades: [5, 13]

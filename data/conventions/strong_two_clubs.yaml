@@ -2,6 +2,8 @@ name: strong_two_clubs
 conventions:
   - bid: 2C
     conditions:
-      any:
-        - hcp: [20, 22]
-        - hcp: [25, 26]
+      all:
+        - no_prior_bids: true
+        - any:
+            - hcp: [20, 22]
+            - hcp: [25, 26]
