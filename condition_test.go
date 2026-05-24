@@ -121,6 +121,149 @@ func TestBalancedDistributionCondition(t *testing.T) {
 	}
 }
 
+func partnershipCtx(hand *ppp.Hand, eval ppp.PartnershipEval) *ppp.AuctionContext {
+	return &ppp.AuctionContext{SelfHand: hand, Partnership: eval}
+}
+
+func TestNewPartnershipHCPCondition(t *testing.T) {
+	hand := mustHand([]string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"})
+	conv := ppp.NewConvention(ppp.NewBid(3, ppp.NoTrump), ppp.NewPartnershipHCPCondition(25, 28))
+
+	tt := []struct {
+		name        string
+		minCombined int
+		maxCombined int
+		shouldBid   bool
+	}{
+		{name: "combined HCP in range", minCombined: 25, maxCombined: 28, shouldBid: true},
+		{name: "min too low", minCombined: 23, maxCombined: 28, shouldBid: false},
+		{name: "max too high", minCombined: 25, maxCombined: 30, shouldBid: false},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			eval := ppp.PartnershipEval{MinCombinedHCP: tc.minCombined, MaxCombinedHCP: tc.maxCombined}
+			willBid, _ := conv.NextBid(partnershipCtx(hand, eval))
+			is.Equal(tc.shouldBid, willBid)
+		})
+	}
+}
+
+func TestNewMajorFitCondition(t *testing.T) {
+	hand := mustHand([]string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"})
+	conv := ppp.NewConvention(ppp.NewBid(4, ppp.Spades), ppp.NewMajorFitCondition(8, 10))
+
+	tt := []struct {
+		name      string
+		hearts    ppp.SuitRange
+		spades    ppp.SuitRange
+		shouldBid bool
+	}{
+		{
+			name:      "spade fit in range",
+			hearts:    ppp.SuitRange{Min: 6, Max: 8},
+			spades:    ppp.SuitRange{Min: 8, Max: 10},
+			shouldBid: true,
+		},
+		{
+			name:      "fit max too high",
+			hearts:    ppp.SuitRange{Min: 6, Max: 8},
+			spades:    ppp.SuitRange{Min: 8, Max: 11},
+			shouldBid: false,
+		},
+		{
+			name:      "fit min too low",
+			hearts:    ppp.SuitRange{Min: 6, Max: 8},
+			spades:    ppp.SuitRange{Min: 6, Max: 9},
+			shouldBid: false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			eval := ppp.PartnershipEval{
+				SuitFit: [4]ppp.SuitRange{{}, {}, tc.hearts, tc.spades},
+			}
+			willBid, _ := conv.NextBid(partnershipCtx(hand, eval))
+			is.Equal(tc.shouldBid, willBid)
+		})
+	}
+}
+
+func TestNewMinorFitCondition(t *testing.T) {
+	hand := mustHand([]string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"})
+	conv := ppp.NewConvention(ppp.NewBid(5, ppp.Diamonds), ppp.NewMinorFitCondition(9, 11))
+
+	tt := []struct {
+		name      string
+		clubs     ppp.SuitRange
+		diamonds  ppp.SuitRange
+		shouldBid bool
+	}{
+		{
+			name:      "diamond fit in range",
+			clubs:     ppp.SuitRange{Min: 7, Max: 9},
+			diamonds:  ppp.SuitRange{Min: 9, Max: 11},
+			shouldBid: true,
+		},
+		{
+			name:      "fit max too high",
+			clubs:     ppp.SuitRange{Min: 7, Max: 9},
+			diamonds:  ppp.SuitRange{Min: 9, Max: 12},
+			shouldBid: false,
+		},
+		{
+			name:      "fit min too low",
+			clubs:     ppp.SuitRange{Min: 7, Max: 9},
+			diamonds:  ppp.SuitRange{Min: 7, Max: 10},
+			shouldBid: false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			eval := ppp.PartnershipEval{
+				SuitFit: [4]ppp.SuitRange{tc.clubs, tc.diamonds, {}, {}},
+			}
+			willBid, _ := conv.NextBid(partnershipCtx(hand, eval))
+			is.Equal(tc.shouldBid, willBid)
+		})
+	}
+}
+
+func TestNewHeartFitCondition(t *testing.T) {
+	hand := mustHand([]string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"})
+	conv := ppp.NewConvention(ppp.NewBid(4, ppp.Hearts), ppp.NewHeartFitCondition(8, 10))
+
+	is := is.New(t)
+
+	good := ppp.PartnershipEval{SuitFit: [4]ppp.SuitRange{{}, {}, {Min: 8, Max: 10}, {}}}
+	willBid, _ := conv.NextBid(partnershipCtx(hand, good))
+	is.True(willBid)
+
+	tooHigh := ppp.PartnershipEval{SuitFit: [4]ppp.SuitRange{{}, {}, {Min: 8, Max: 11}, {}}}
+	willBid, _ = conv.NextBid(partnershipCtx(hand, tooHigh))
+	is.True(!willBid)
+}
+
+func TestNewSpadeFitCondition(t *testing.T) {
+	hand := mustHand([]string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"})
+	conv := ppp.NewConvention(ppp.NewBid(4, ppp.Spades), ppp.NewSpadeFitCondition(8, 10))
+
+	is := is.New(t)
+
+	good := ppp.PartnershipEval{SuitFit: [4]ppp.SuitRange{{}, {}, {}, {Min: 8, Max: 10}}}
+	willBid, _ := conv.NextBid(partnershipCtx(hand, good))
+	is.True(willBid)
+
+	tooLow := ppp.PartnershipEval{SuitFit: [4]ppp.SuitRange{{}, {}, {}, {Min: 6, Max: 9}}}
+	willBid, _ = conv.NextBid(partnershipCtx(hand, tooLow))
+	is.True(!willBid)
+}
+
 func TestNewNoPriorBidsCondition(t *testing.T) {
 	hand := mustHand([]string{"2♣️", "3♣️", "4♣️", "5♣️", "6♣️", "7♣️", "8♣️", "9♣️", "10♣️", "J♣️", "Q♣️", "K♣️", "A♣️"})
 	conv := ppp.NewConvention(ppp.NewBid(1, ppp.NoTrump), ppp.NewNoPriorBidsCondition())
