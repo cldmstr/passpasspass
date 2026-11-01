@@ -42,6 +42,10 @@ go run ./cmd/ppp/main.go /path/to/data/dir cards/my_card.yaml
 
 # Build the binary
 go build -o ppp ./cmd/ppp
+
+# Format and lint (configuration in .golangci.yml)
+golangci-lint fmt ./...
+golangci-lint run ./...
 ```
 
 ## Rules
@@ -51,3 +55,6 @@ go build -o ppp ./cmd/ppp
 - Trunk-based development: commit directly to `main`. Do not create branches before committing.
 - Do not add `Co-Authored-By: Claude` trailers to commit messages.
 - When behaviour changes, update the matching spec through a change's spec deltas.
+- Before committing, `golangci-lint fmt ./...` leaves no changes, and `golangci-lint run ./...`
+  and `go test ./...` both pass. Fix findings rather than adding `//nolint`; a `//nolint` must
+  name the linter and explain why.

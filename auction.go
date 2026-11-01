@@ -142,9 +142,7 @@ func NewAuction(dealer Direction, cs *ConventionSheet, hands []*Hand) *Auction {
 		Bids:   make([]BidAction, 0, 40),
 		cs:     cs,
 	}
-	for i, h := range hands {
-		a.Hands[i] = h
-	}
+	copy(a.Hands[:], hands)
 	return a
 }
 
@@ -206,14 +204,14 @@ func (a *Auction) String() string {
 
 	for i, dir := range allDirections {
 		h := a.Hands[i]
-		sb.WriteString(fmt.Sprintf("%s (%d HCP %s):\n%s\n", dir, h.HCP(), h.Distribution(), h))
+		fmt.Fprintf(&sb, "%s (%d HCP %s):\n%s\n", dir, h.HCP(), h.Distribution(), h)
 	}
 
-	sb.WriteString(fmt.Sprintf("Dealer: %s\n", allDirections[a.Dealer]))
+	fmt.Fprintf(&sb, "Dealer: %s\n", allDirections[a.Dealer])
 	sb.WriteString("North\tEast\tSouth\tWest\n")
 
 	col := int(a.Dealer)
-	for i := 0; i < col; i++ {
+	for range col {
 		sb.WriteString("\t")
 	}
 	for _, ba := range a.Bids {
@@ -233,7 +231,7 @@ func (a *Auction) String() string {
 	if a.Contract == nil {
 		sb.WriteString("\nPassed out\n")
 	} else {
-		sb.WriteString(fmt.Sprintf("\nContract: %s by %s\n", a.Contract, allDirections[a.Declarer]))
+		fmt.Fprintf(&sb, "\nContract: %s by %s\n", a.Contract, allDirections[a.Declarer])
 	}
 
 	return sb.String()
@@ -259,7 +257,7 @@ func extractBounds(node conditionNode) HandRange {
 
 func applyBounds(node conditionNode, r *HandRange) {
 	switch {
-	case node.HCP != nil && len(node.HCP) == 2:
+	case len(node.HCP) == 2:
 		if node.HCP[0] > r.MinHCP {
 			r.MinHCP = node.HCP[0]
 		}

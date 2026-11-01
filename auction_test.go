@@ -97,12 +97,12 @@ func TestNewPartnershipEval(t *testing.T) {
 
 	eval := ppp.NewPartnershipEval(self, partner)
 
-	is.Equal(16, eval.MinCombinedHCP)                                     // 10 + 6
-	is.Equal(20, eval.MaxCombinedHCP)                                     // 10 + 10
-	is.Equal(ppp.SuitRange{Min: 6, Max: 9}, eval.SuitFit[ppp.Clubs])     // 4 + [2,5]
-	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Diamonds])  // 3 + [2,4]
-	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Hearts])    // 3 + [2,4]
-	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Spades])    // 3 + [2,4]
+	is.Equal(16, eval.MinCombinedHCP)                                   // 10 + 6
+	is.Equal(20, eval.MaxCombinedHCP)                                   // 10 + 10
+	is.Equal(ppp.SuitRange{Min: 6, Max: 9}, eval.SuitFit[ppp.Clubs])    // 4 + [2,5]
+	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Diamonds]) // 3 + [2,4]
+	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Hearts])   // 3 + [2,4]
+	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Spades])   // 3 + [2,4]
 }
 
 func TestPartnershipEval_BestMajorFit(t *testing.T) {
@@ -199,9 +199,9 @@ func TestAuction_Run_BidLegalityEnforcement(t *testing.T) {
 	is.Equal(ppp.North, a.Declarer)
 	is.Equal(4, len(a.Bids))
 	is.Equal("1❤️", a.Bids[0].Bid.String()) // North opens
-	is.Equal(ppp.Pass, a.Bids[1].Bid)        // East: 1♥ ≤ contract → coerced
-	is.Equal(ppp.Pass, a.Bids[2].Bid)        // South: same
-	is.Equal(ppp.Pass, a.Bids[3].Bid)        // West: same
+	is.Equal(ppp.Pass, a.Bids[1].Bid)       // East: 1♥ ≤ contract → coerced
+	is.Equal(ppp.Pass, a.Bids[2].Bid)       // South: same
+	is.Equal(ppp.Pass, a.Bids[3].Bid)       // West: same
 }
 
 // bidStrings renders bids for comparison; NewBid returns a fresh pointer per call.

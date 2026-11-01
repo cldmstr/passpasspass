@@ -1,3 +1,5 @@
+// Command ppp deals a random board and prints the auction bid by a convention card: the
+// embedded Colin card by default, or the card at <data dir> <card path> when both are given.
 package main
 
 import (

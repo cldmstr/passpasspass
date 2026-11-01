@@ -18,7 +18,7 @@ convention card, then prints the deal, the bidding and the final contract.
 
 ### Code Style
 - One package, `passpasspass`, at the repository root; the CLI lives in `cmd/ppp`.
-- Exported identifiers carry doc comments.
+- Exported identifiers carry doc comments (enforced by `revive`).
 - Per-suit arrays (`Distribution`, `DistributionRange`, `HandRange.SuitLength`) are always
   indexed in suit order: clubs, diamonds, hearts, spades.
 
@@ -43,6 +43,12 @@ Main types and their files:
 | `Loader` | `loader.go` | YAML card and sub-convention loading |
 | `Auction`, `AuctionContext`, `HandRange` | `auction.go` | Bidding loop and hand inference |
 | `Table` | `table.go` | Wires dealer, sheet and auction |
+
+### Linting
+- `.golangci.yml` lists every enabled linter explicitly (`default: none`), so upgrading
+  golangci-lint never changes the set silently.
+- Formatting is `gofmt` plus `goimports`, run with `golangci-lint fmt ./...`.
+- `revive`'s `exported` rule enforces doc comments on exported identifiers.
 
 ### Testing Strategy
 - All tests live in the external package `passpasspass_test`.

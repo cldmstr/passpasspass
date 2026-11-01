@@ -11,14 +11,13 @@ import (
 	ppp "github.com/cldmstr/passpasspass"
 )
 
-// writeTempFile writes content to a temp file and returns its path.
-func writeTempFile(t *testing.T, dir, name, content string) string {
+// writeTempFile writes content to the file name in dir.
+func writeTempFile(t *testing.T, dir, name, content string) {
 	t.Helper()
 	path := filepath.Join(dir, name)
-	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return path
 }
 
 func ctx(hand *ppp.Hand) *ppp.AuctionContext {
@@ -148,7 +147,7 @@ func TestLoader_LoadCard_Includes(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 	convDir := filepath.Join(dir, "conventions")
-	if err := os.MkdirAll(convDir, 0700); err != nil {
+	if err := os.MkdirAll(convDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
 

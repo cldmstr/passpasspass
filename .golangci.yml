@@ -1,0 +1,94 @@
+version: "2"
+
+run:
+  tests: true
+
+issues:
+  # Report every finding instead of the first 50 per linter and 3 per message.
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters:
+  # Start from nothing so upgrades of golangci-lint never change the set silently.
+  default: none
+  enable:
+    # Correctness
+    - errcheck # unchecked errors
+    - govet # suspicious constructs reported by go vet
+    - staticcheck # bugs, simplifications and deprecated APIs
+    - ineffassign # assignments that are never used
+    - unused # unused code
+    - errorlint # errors compared or type-asserted without errors.Is / errors.As
+    - nilerr # returning nil when an error was checked
+    - copyloopvar # loop variable copies made obsolete by Go 1.22
+    - gosec # security issues
+
+    # Style and clarity
+    - revive # doc comments on exported identifiers, naming
+    - gocritic # opinionated but low-noise style and performance checks
+    - intrange # for i := 0; i < n; i++ → for i := range n
+    - unconvert # unnecessary type conversions
+    - unparam # parameters that always receive the same value
+    - usestdlibvars # constants from the standard library instead of literals
+    - misspell # common English misspellings in comments and strings
+    - thelper # test helpers that do not call t.Helper()
+    - nolintlint # malformed or unexplained //nolint directives
+
+    # Complexity
+    - gocognit # cognitive complexity: nesting and breaks in the flow weigh more than branches
+    - cyclop # cyclomatic complexity: number of independent paths through a function
+
+  settings:
+    revive:
+      rules:
+        - name: exported # project convention: exported identifiers carry doc comments
+        - name: package-comments
+        - name: var-naming
+        - name: indent-error-flow
+        - name: errorf
+        - name: error-return
+        - name: error-strings
+        - name: receiver-naming
+        - name: unreachable-code
+        - name: redefines-builtin-id # shadowing min, max, len and friends
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        - hugeParam # Hand and HandRange are passed by value on purpose
+        - unnamedResult # (bool, *Bid) results read fine without names
+        - rangeValCopy # same trade-off as hugeParam; YAML nodes are copied while loading only
+        - importShadow # `is := is.New(t)` is the idiomatic use of matryer/is
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    gocognit:
+      min-complexity: 30
+    cyclop:
+      max-complexity: 10
+
+  exclusions:
+    rules:
+      # Shuffling cards does not need a cryptographic random source.
+      - linters: [gosec]
+        text: "G404"
+
+      # Temporary: each function below is rewritten or removed by add-partner-aware-responses.
+      # Delete the matching rule when its task is done.
+      - linters: [gocognit, cyclop]
+        text: "applyBounds" # removed in task 5.7
+      - linters: [cyclop]
+        text: "function Run " # rewritten on top of AuctionState in task 6.4
+      - linters: [cyclop]
+        text: "buildCondition" # pending review of how condition nodes are built
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/cldmstr/passpasspass
