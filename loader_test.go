@@ -267,6 +267,143 @@ func TestLoader_RoundTrip_TwoOverOne(t *testing.T) {
 	}
 }
 
+func TestLoader_RoundTrip_MultiTwoDiamond_Weak(t *testing.T) {
+	is := is.New(t)
+
+	dataFS, err := fs.Sub(ppp.DefaultData, "data")
+	is.NoErr(err)
+	loader := ppp.NewLoader(dataFS)
+	twoOverOne, err := loader.LoadCard("cards/two_over_one.yaml")
+	is.NoErr(err)
+	colin, err := loader.LoadCard("cards/colin.yaml")
+	is.NoErr(err)
+
+	tt := []struct {
+		name string
+		card *ppp.ConventionSheet
+		hand []string
+		want string
+	}{
+		{
+			// A❤️(4)+Q❤️(2) = 6 HCP: lower bound
+			name: "weak hearts - 6 HCP",
+			card: twoOverOne,
+			hand: []string{"A❤️", "Q❤️", "2❤️", "3❤️", "4❤️", "5❤️", "2♣️", "3♣️", "4♣️", "2♦️", "3♦️", "4♦️", "2♠️"},
+			want: "2♦️",
+		},
+		{
+			// A❤️(4)+K❤️(3)+Q❤️(2)+J♣️(1) = 10 HCP: upper bound
+			name: "weak hearts - 10 HCP",
+			card: twoOverOne,
+			hand: []string{"A❤️", "K❤️", "Q❤️", "2❤️", "3❤️", "4❤️", "J♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "2♠️"},
+			want: "2♦️",
+		},
+		{
+			// A♠️(4)+Q♠️(2) = 6 HCP: lower bound
+			name: "weak spades - 6 HCP",
+			card: twoOverOne,
+			hand: []string{"A♠️", "Q♠️", "2♠️", "3♠️", "4♠️", "5♠️", "2♣️", "3♣️", "4♣️", "2♦️", "3♦️", "4♦️", "2❤️"},
+			want: "2♦️",
+		},
+		{
+			// A♠️(4)+K♠️(3)+Q♠️(2)+J♣️(1) = 10 HCP: upper bound
+			name: "weak spades - 10 HCP",
+			card: twoOverOne,
+			hand: []string{"A♠️", "K♠️", "Q♠️", "2♠️", "3♠️", "4♠️", "J♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "2❤️"},
+			want: "2♦️",
+		},
+		{
+			// A❤️(4)+K❤️(3)+Q❤️(2)+J❤️(1) = 10 HCP, 7 hearts
+			name: "weak hearts - 7-card suit",
+			card: twoOverOne,
+			hand: []string{"A❤️", "K❤️", "Q❤️", "J❤️", "2❤️", "3❤️", "4❤️", "2♣️", "3♣️", "2♦️", "3♦️", "2♠️", "3♠️"},
+			want: "2♦️",
+		},
+		{
+			// A❤️(4)+J❤️(1) = 5 HCP: below lower bound
+			name: "pass - 6 hearts 5 HCP",
+			card: twoOverOne,
+			hand: []string{"A❤️", "J❤️", "2❤️", "3❤️", "4❤️", "5❤️", "2♣️", "3♣️", "4♣️", "2♦️", "3♦️", "4♦️", "2♠️"},
+			want: "Pass",
+		},
+		{
+			// A♠️(4)+J♠️(1) = 5 HCP: below lower bound
+			name: "pass - 6 spades 5 HCP",
+			card: twoOverOne,
+			hand: []string{"A♠️", "J♠️", "2♠️", "3♠️", "4♠️", "5♠️", "2♣️", "3♣️", "4♣️", "2♦️", "3♦️", "4♦️", "2❤️"},
+			want: "Pass",
+		},
+		{
+			// 10 HCP but only 5 hearts: suit too short for weak 2D, too weak for 1H
+			name: "pass - 5 hearts 10 HCP",
+			card: twoOverOne,
+			hand: []string{"A❤️", "K❤️", "Q❤️", "2❤️", "3❤️", "J♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "2♠️", "3♠️"},
+			want: "Pass",
+		},
+		{
+			// 6 diamonds, 10 HCP: minor suits don't qualify for weak Multi
+			name: "pass - 6 diamonds 10 HCP",
+			card: twoOverOne,
+			hand: []string{"A♦️", "K♦️", "Q♦️", "2♦️", "3♦️", "4♦️", "J♣️", "2♣️", "3♣️", "2❤️", "3❤️", "4❤️", "2♠️"},
+			want: "Pass",
+		},
+		{
+			// A❤️(4)+K❤️(3)+Q❤️(2)+Q♣️(2) = 11 HCP: just above weak range
+			// rule of 20: 11+6+3 = 20
+			name: "1H - 6 hearts 11 HCP",
+			card: twoOverOne,
+			hand: []string{"A❤️", "K❤️", "Q❤️", "2❤️", "3❤️", "4❤️", "Q♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "2♠️"},
+			want: "1❤️",
+		},
+		{
+			// A♠️(4)+K♠️(3)+Q♠️(2)+Q♣️(2) = 11 HCP: just above weak range
+			// rule of 20: 11+6+3 = 20
+			name: "1S - 6 spades 11 HCP",
+			card: twoOverOne,
+			hand: []string{"A♠️", "K♠️", "Q♠️", "2♠️", "3♠️", "4♠️", "Q♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "2❤️"},
+			want: "1♠️",
+		},
+		{
+			// 10 HCP, 6 hearts + 5 clubs: below Tartan's 11 HCP, Multi fires
+			name: "colin weak hearts - 10 HCP two-suiter",
+			card: colin,
+			hand: []string{"A❤️", "K❤️", "Q❤️", "2❤️", "3❤️", "4❤️", "J♣️", "2♣️", "3♣️", "4♣️", "5♣️", "2♦️", "2♠️"},
+			want: "2♦️",
+		},
+		{
+			// 11 HCP, 6 hearts + 5 clubs: above Multi range, Tartan fires
+			name: "colin tartan 2H - 11 HCP two-suiter",
+			card: colin,
+			hand: []string{"A❤️", "K❤️", "Q❤️", "2❤️", "3❤️", "4❤️", "Q♣️", "2♣️", "3♣️", "4♣️", "5♣️", "2♦️", "2♠️"},
+			want: "2❤️",
+		},
+		{
+			// 10 HCP, 6 spades + 5 diamonds: below Tartan's 11 HCP, Multi fires
+			name: "colin weak spades - 10 HCP two-suiter",
+			card: colin,
+			hand: []string{"A♠️", "K♠️", "Q♠️", "2♠️", "3♠️", "4♠️", "J♦️", "2♦️", "3♦️", "4♦️", "5♦️", "2♣️", "2❤️"},
+			want: "2♦️",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			hand, err := ppp.NewHandFromStrings(tc.hand)
+			is.NoErr(err)
+			is.Equal(tc.want, tc.card.Bid(ctx(hand)).String())
+		})
+	}
+
+	t.Run("not an opening - partner already bid", func(t *testing.T) {
+		is := is.New(t)
+		// 10 HCP, 6 hearts: weak 2D hand, but no_prior_bids blocks it
+		hand, err := ppp.NewHandFromStrings([]string{"A❤️", "K❤️", "Q❤️", "2❤️", "3❤️", "4❤️", "J♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "2♠️"})
+		is.NoErr(err)
+		is.Equal("Pass", twoOverOne.Bid(ctxAfterPartnerNT(hand)).String())
+	})
+}
+
 func TestLoader_RoundTrip_Colin(t *testing.T) {
 
 	is := is.New(t)

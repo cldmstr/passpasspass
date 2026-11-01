@@ -9,11 +9,11 @@ conventions:
                 - hcp: [23, 24]
                 - balanced: true
             - all:
-                - hcp: [6, 9]
+                - hcp: [6, 10]
                 - suit_length:
                     hearts: [6, 13]
             - all:
-                - hcp: [6, 9]
+                - hcp: [6, 10]
                 - suit_length:
                     spades: [6, 13]
             - hcp: [27, 40]
