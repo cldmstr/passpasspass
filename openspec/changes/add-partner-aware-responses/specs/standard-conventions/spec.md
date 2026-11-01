@@ -1,64 +1,88 @@
 ## ADDED Requirements
 
-### Requirement: Responses to one of a major
-The `five_card_major` sub-convention SHALL define responses after `auction: [1H, Pass]` and
-`auction: [1S, Pass]`, where M is the opened major, evaluated in this order:
+### Requirement: Auction patterns in the built-in data
+Every built-in opening SHALL be guarded by `auction: [Pass*]`. Every built-in response and rebid
+SHALL be guarded by an `auction` pattern that starts with `Pass*`, so that it applies whichever
+seat opened. A rule marked *unpassed* below SHALL instead be guarded by `any` of the two patterns
+in which responder has not yet called: the pattern without the leading `Pass*`, and the same
+pattern with one leading `Pass`. In the tables below, `M` is the opened major and `m` the opened
+minor; every rule is written out once per suit.
 
-| Order | Bid | Shows |
-|-------|-----|-------|
-| 1 | `2NT` (Jacoby) | 4+ cards in M, 13+ HCP |
-| 2 | `4M` | 5+ cards in M, 0–9 HCP |
-| 3 | `3M` (limit raise) | 4+ cards in M, 10–12 HCP |
-| 4 | `2M` | 3+ cards in M, 6–10 HCP |
-| 5 | `1♠️` (over `1♥️` only) | 4+ spades, 6+ HCP |
-| 6 | `2♥️` (over `1♠️` only) | 5+ hearts, 13+ HCP |
-| 7 | `2♦️` | 5+ diamonds, 13+ HCP |
-| 8 | `2♣️` | 3+ clubs, 13+ HCP |
-| 9 | `2♦️` | 3+ diamonds, 13+ HCP |
-| 10 | `1NT` (forcing) | 6–12 HCP |
+The *Establishes* column lists the `establishes` facts each rule SHALL declare; a dash means the
+rule declares none.
+
+#### Scenario: Third-seat opening
+- **WHEN** North and East pass, South opens `1♥️`, West passes, and North holds 8 HCP with 3 hearts
+- **THEN** North bids `2♥️`
+
+#### Scenario: Passed responder
+- **WHEN** North and East pass, South opens `1♥️`, West passes, and North holds 13 HCP with 4 hearts and no singleton or void
+- **THEN** North does not bid Jacoby `2NT`, because North has already passed
+
+### Requirement: Responses to one of a major
+The `five_card_major` sub-convention SHALL define responses after `auction: [Pass*, 1H, Pass]` and
+`auction: [Pass*, 1S, Pass]`, evaluated in this order:
+
+| Order | Bid | Shows | Unpassed | Establishes |
+|-------|-----|-------|----------|-------------|
+| 1 | `2NT` (Jacoby) | 4+ cards in M, 13+ HCP | yes | `agreed: M`, `forcing: game` |
+| 2 | `4M` | 5+ cards in M, 0–9 HCP | | `agreed: M` |
+| 3 | `3M` (limit raise) | 4+ cards in M, 10–12 HCP | | `agreed: M` |
+| 4 | `2M` | 3+ cards in M, 6–10 HCP | | `agreed: M` |
+| 5 | `1♠️` (over `1♥️` only) | 4+ spades, 6+ HCP | | `forcing: one_round` |
+| 6 | `2♥️` (over `1♠️` only) | 5+ hearts, 13+ HCP | yes | `forcing: game` |
+| 7 | `2♦️` | 5+ diamonds, 13+ HCP | yes | `forcing: game` |
+| 8 | `2♣️` | 3+ clubs, 13+ HCP | yes | `forcing: game` |
+| 9 | `2♦️` | 3+ diamonds, 13+ HCP | yes | `forcing: game` |
+| 10 | `1NT` (forcing) | 6–12 HCP | yes | `forcing: one_round` |
+| 11 | `1NT` | 6–12 HCP | | — |
 
 Any other hand SHALL pass.
 
 #### Scenario: Simple raise
 - **WHEN** partner opened `1♥️` and responder holds 8 HCP with 3 hearts
-- **THEN** responder bids `2♥️`
+- **THEN** responder bids `2♥️`, and the partnership has agreed hearts
 
 #### Scenario: Limit raise boundary
 - **WHEN** partner opened `1♠️` and responder holds 10 HCP with 4 spades
 - **THEN** responder bids `3♠️`
 
 #### Scenario: Game-forcing raise
-- **WHEN** partner opened `1♥️` and responder holds 14 HCP with 4 hearts and no singleton or void
-- **THEN** responder bids `2NT`
+- **WHEN** partner opened `1♥️`, responder has not passed, and responder holds 14 HCP with 4 hearts and no singleton or void
+- **THEN** responder bids `2NT`, the partnership has agreed hearts, and a game force is in effect
 
 #### Scenario: Spades over hearts
 - **WHEN** partner opened `1♥️` and responder holds 9 HCP with 2 hearts and 4 spades
-- **THEN** responder bids `1♠️`
+- **THEN** responder bids `1♠️`, and opener is forced to bid again
 
 #### Scenario: Forcing notrump
-- **WHEN** partner opened `1♠️` and responder holds 7 HCP with 2 spades and no 4-card heart suit
-- **THEN** responder bids `1NT`
+- **WHEN** partner opened `1♠️`, responder has not passed, and responder holds 7 HCP with 2 spades and no 4-card heart suit
+- **THEN** responder bids `1NT`, and opener is forced to bid again
+
+#### Scenario: Notrump by a passed hand
+- **WHEN** partner opened `1♠️` in third seat, responder has passed, and responder holds 7 HCP with 2 spades and no 4-card heart suit
+- **THEN** responder bids `1NT`, and opener is not forced to bid again
 
 #### Scenario: Too weak
 - **WHEN** partner opened `1♥️` and responder holds 5 HCP with 2 hearts
 - **THEN** responder passes
 
 ### Requirement: Responses to one of a minor
-The `five_card_major` sub-convention SHALL define responses after `auction: [1C, Pass]` and
-`auction: [1D, Pass]`, where m is the opened minor, evaluated in this order:
+The `five_card_major` sub-convention SHALL define responses after `auction: [Pass*, 1C, Pass]` and
+`auction: [Pass*, 1D, Pass]`, evaluated in this order:
 
-| Order | Bid | Shows |
-|-------|-----|-------|
-| 1 | `1♠️` | 5+ spades, 6+ HCP |
-| 2 | `1♥️` | 4+ hearts, 6+ HCP |
-| 3 | `1♠️` | 4+ spades, 6+ HCP |
-| 4 | `1♦️` (over `1♣️` only) | 4+ diamonds, 6+ HCP |
-| 5 | `3NT` | balanced, 13–15 HCP |
-| 6 | `2NT` | balanced, 11–12 HCP |
-| 7 | `2♣️` (over `1♦️` only) | 4+ clubs, 13+ HCP |
-| 8 | `3m` (limit raise) | 10–12 HCP; 5+ clubs over `1♣️`, 4+ diamonds over `1♦️` |
-| 9 | `2m` | 6–10 HCP; same support as the limit raise |
-| 10 | `1NT` | 6–10 HCP |
+| Order | Bid | Shows | Unpassed | Establishes |
+|-------|-----|-------|----------|-------------|
+| 1 | `1♠️` | 5+ spades, 6+ HCP | | `forcing: one_round` |
+| 2 | `1♥️` | 4+ hearts, 6+ HCP | | `forcing: one_round` |
+| 3 | `1♠️` | 4+ spades, 6+ HCP | | `forcing: one_round` |
+| 4 | `1♦️` (over `1♣️` only) | 4+ diamonds, 6+ HCP | | `forcing: one_round` |
+| 5 | `3NT` | balanced, 13–15 HCP | | `agreed: notrump` |
+| 6 | `2NT` | balanced, 11–12 HCP | | — |
+| 7 | `2♣️` (over `1♦️` only) | 4+ clubs, 13+ HCP | yes | `forcing: game` |
+| 8 | `3m` (limit raise) | 10–12 HCP; 5+ clubs over `1♣️`, 4+ diamonds over `1♦️` | | `agreed: m` |
+| 9 | `2m` | 6–10 HCP; same support as the limit raise | | `agreed: m` |
+| 10 | `1NT` | 6–10 HCP | | — |
 
 Any other hand SHALL pass.
 
@@ -76,32 +100,32 @@ Any other hand SHALL pass.
 
 ### Requirement: Opener's rebids after a major opening
 The `five_card_major` sub-convention SHALL define opener's rebids, evaluated in the order listed
-within each auction:
+within each auction. Each auction is written without its leading `Pass*`:
 
-| Auction | Rebid | Shows |
-|---------|-------|-------|
-| `[1M, Pass, 2M, Pass]` | `4M` | 17 HCP |
-| | `3M` | 15–16 HCP |
-| | Pass | otherwise |
-| `[1M, Pass, 3M, Pass]` | `4M` | 14+ HCP |
-| | Pass | otherwise |
-| `[1M, Pass, 2NT, Pass]` | `3` of another suit | 0–1 cards in that suit |
-| | `3M` | 15+ HCP |
-| | `4M` | otherwise |
-| `[1H, Pass, 1S, Pass]` | `4♠️` | 4+ spades, 17 HCP |
-| | `3♠️` | 4+ spades, 15–16 HCP |
-| | `2♠️` | 4+ spades |
-| | `2♥️` | 6+ hearts |
-| | `1NT` | balanced |
-| | `2♣️` | 4+ clubs |
-| | `2♦️` | 4+ diamonds |
-| | `2♥️` | otherwise |
-| `[1M, Pass, 1NT, Pass]` | `2M` | 6+ cards in M |
-| | `2♥️` (after `1♠️` only) | 4+ hearts |
-| | `2♦️` | 4+ diamonds |
-| | `2♣️` | 3+ clubs |
-| | `2♦️` | 3+ diamonds |
-| | `2M` | otherwise |
+| Auction | Rebid | Shows | Establishes |
+|---------|-------|-------|-------------|
+| `[1M, Pass, 2M, Pass]` | `4M` | 17 HCP | — |
+| | `3M` | 15–16 HCP | — |
+| | Pass | otherwise | — |
+| `[1M, Pass, 3M, Pass]` | `4M` | 14+ HCP | — |
+| | Pass | otherwise | — |
+| `[1M, Pass, 2NT, Pass]` | `3` of another suit | 0–1 cards in that suit | — |
+| | `3M` | 15+ HCP | — |
+| | `4M` | otherwise | — |
+| `[1H, Pass, 1S, Pass]` | `4♠️` | 4+ spades, 17 HCP | `agreed: spades` |
+| | `3♠️` | 4+ spades, 15–16 HCP | `agreed: spades` |
+| | `2♠️` | 4+ spades | `agreed: spades` |
+| | `2♥️` | 6+ hearts | — |
+| | `1NT` | balanced | — |
+| | `2♣️` | 4+ clubs | — |
+| | `2♦️` | 4+ diamonds | — |
+| | `2♥️` | otherwise | — |
+| `[1M, Pass, 1NT, Pass]` | `2M` | 6+ cards in M | — |
+| | `2♥️` (after `1♠️` only) | 4+ hearts | — |
+| | `2♦️` | 4+ diamonds | — |
+| | `2♣️` | 3+ clubs | — |
+| | `2♦️` | 3+ diamonds | — |
+| | `2M` | otherwise | — |
 
 #### Scenario: Invitation after a simple raise
 - **WHEN** the auction is `1♥️ Pass 2♥️ Pass` and opener holds 15 HCP
@@ -117,16 +141,21 @@ within each auction:
 
 #### Scenario: Raising responder's spades
 - **WHEN** the auction is `1♥️ Pass 1♠️ Pass` and opener holds 12 HCP with 4 spades
-- **THEN** opener bids `2♠️`
+- **THEN** opener bids `2♠️`, and the partnership has agreed spades
+
+#### Scenario: Leading passes
+- **WHEN** the auction is `Pass Pass 1♥️ Pass 2♥️ Pass` and opener holds 15 HCP
+- **THEN** opener bids `3♥️`
 
 ### Requirement: Standard responses to 1NT
-The `strong_notrump` sub-convention SHALL define responses after `auction: [1NT, Pass]`, in this
-order: `2♣️` (Stayman) with 8+ HCP and 4+ hearts or 4+ spades; `2NT` with 8–9 HCP; `3NT` with
-10–15 HCP. Any other hand SHALL pass. Transfers come from `jacoby_transfer`.
+The `strong_notrump` sub-convention SHALL define responses after `auction: [Pass*, 1NT, Pass]`, in
+this order: `2♣️` (Stayman) with 8+ HCP and 4+ hearts or 4+ spades, establishing
+`forcing: one_round`; `2NT` with 8–9 HCP; `3NT` with 10–15 HCP, establishing `agreed: notrump`.
+Any other hand SHALL pass. Transfers come from `jacoby_transfer`.
 
-It SHALL define opener's replies: after `[1NT, Pass, 2C, Pass]` bid `2♥️` with 4+ hearts, else
-`2♠️` with 4+ spades, else `2♦️`; after `[1NT, Pass, 2NT, Pass]` bid `3NT` with 16–17 HCP, else
-pass.
+It SHALL define opener's replies: after `[Pass*, 1NT, Pass, 2C, Pass]` bid `2♥️` with 4+ hearts,
+else `2♠️` with 4+ spades, else `2♦️`; after `[Pass*, 1NT, Pass, 2NT, Pass]` bid `3NT` with 16–17
+HCP, else pass.
 
 #### Scenario: Stayman answer
 - **WHEN** the auction is `1NT Pass 2♣️ Pass` and opener holds 4 spades and 3 hearts
@@ -137,13 +166,15 @@ pass.
 - **THEN** opener passes
 
 ### Requirement: Responses to a strong 2♣
-The `strong_two_clubs` sub-convention SHALL define responses after `auction: [2C, Pass]`, in this
-order: `2♥️` with 5+ hearts and 8+ HCP; `2♠️` with 5+ spades and 8+ HCP; `3♣️` with 5+ clubs and
-8+ HCP; `3♦️` with 5+ diamonds and 8+ HCP; `2NT` balanced with 8+ HCP; otherwise `2♦️` (waiting).
+The `strong_two_clubs` sub-convention SHALL define responses after `auction: [Pass*, 2C, Pass]`, in
+this order: `2♥️` with 5+ hearts and 8+ HCP; `2♠️` with 5+ spades and 8+ HCP; `3♣️` with 5+ clubs
+and 8+ HCP; `3♦️` with 5+ diamonds and 8+ HCP; `2NT` balanced with 8+ HCP; otherwise `2♦️`
+(waiting). Every positive response SHALL establish `forcing: game`; `2♦️` SHALL establish nothing.
 
-It SHALL define opener's rebids after `[2C, Pass, 2D, Pass]`, in this order: `2NT` balanced with
-20–22 HCP; `3NT` balanced with 25–26 HCP; `2♠️` with 5+ spades; `2♥️` with 5+ hearts; `3♦️` with
-5+ diamonds; `3♣️` with 5+ clubs; otherwise `2NT`.
+It SHALL define opener's rebids after `[Pass*, 2C, Pass, 2D, Pass]`, in this order: `2NT` balanced
+with 20–22 HCP; `3NT` balanced with 25–26 HCP; `2♠️` with 5+ spades; `2♥️` with 5+ hearts; `3♦️`
+with 5+ diamonds; `3♣️` with 5+ clubs; otherwise `2NT`. Each suit rebid SHALL establish
+`forcing: one_round`.
 
 #### Scenario: Waiting response
 - **WHEN** partner opened `2♣️` and responder holds 4 HCP
@@ -151,18 +182,20 @@ It SHALL define opener's rebids after `[2C, Pass, 2D, Pass]`, in this order: `2N
 
 #### Scenario: Positive response
 - **WHEN** partner opened `2♣️` and responder holds 9 HCP with 5 spades and no other 5-card suit
-- **THEN** responder bids `2♠️`
+- **THEN** responder bids `2♠️`, and a game force is in effect
 
 #### Scenario: Balanced rebid
 - **WHEN** the auction is `2♣️ Pass 2♦️ Pass` and opener holds 21 HCP, balanced
 - **THEN** opener bids `2NT`
 
 ### Requirement: Responses to Multi 2♦
-The `multi_two_diamond` sub-convention SHALL define responses after `auction: [2D, Pass]`, in this
-order: `2NT` (enquiry) with 16+ HCP; `2♠️` with 3+ hearts and 10–15 HCP (pass with spades, or
-correct to `3♥️` with hearts); otherwise `2♥️` (pass or correct).
+The `multi_two_diamond` sub-convention SHALL define responses after `auction: [Pass*, 2D, Pass]`,
+in this order: `2NT` (enquiry) with 16+ HCP, establishing `forcing: one_round`; `2♠️` with 3+
+hearts and 10–15 HCP (pass with spades, or correct to `3♥️` with hearts); otherwise `2♥️` (pass or
+correct).
 
-It SHALL define opener's rebids, in the order listed within each auction:
+It SHALL define opener's rebids, in the order listed within each auction. Each auction is written
+without its leading `Pass*`, and no rebid establishes a fact:
 
 | Auction | Rebid | Shows |
 |---------|-------|-------|
@@ -196,14 +229,15 @@ It SHALL define opener's rebids, in the order listed within each auction:
 - **THEN** responder bids `2NT`
 
 ### Requirement: Splinter responses
-The `splinters` sub-convention SHALL define splinter responses that show 4+ cards in opener's
-major, 12–15 HCP, and 0–1 cards in the bid suit: after `auction: [1H, Pass]` the bids `3♠️`,
-`4♣️` and `4♦️`; after `auction: [1S, Pass]` the bids `4♣️`, `4♦️` and `4♥️`. After any splinter,
-opener SHALL bid four of the opened major.
+The `splinters` sub-convention SHALL define splinter responses for an unpassed responder that show
+4+ cards in opener's major, 12–15 HCP, and 0–1 cards in the bid suit: after `1♥️ Pass` the bids
+`3♠️`, `4♣️` and `4♦️`; after `1♠️ Pass` the bids `4♣️`, `4♦️` and `4♥️`. Each splinter SHALL
+establish `agreed: M` and `forcing: game`. After any splinter, opener SHALL bid four of the opened
+major.
 
 #### Scenario: Club splinter over hearts
-- **WHEN** partner opened `1♥️` and responder holds 13 HCP with 4 hearts and a singleton club
-- **THEN** responder bids `4♣️` rather than `2NT`
+- **WHEN** partner opened `1♥️`, responder has not passed, and responder holds 13 HCP with 4 hearts and a singleton club
+- **THEN** responder bids `4♣️` rather than `2NT`, and the partnership has agreed hearts
 
 #### Scenario: Opener signs off
 - **WHEN** the auction is `1♠️ Pass 4♦️ Pass`
@@ -211,10 +245,40 @@ opener SHALL bid four of the opened major.
 
 ## MODIFIED Requirements
 
+### Requirement: Multi 2♦ opening
+The `multi_two_diamond` sub-convention SHALL open `2♦️` when no prior bid has been made and the
+hand is one of: balanced with 23–24 HCP; 6–10 HCP with 6+ hearts; 6–10 HCP with 6+ spades; or
+27+ HCP. The opening SHALL establish `forcing: one_round`.
+
+#### Scenario: Weak hearts upper bound
+- **WHEN** an opener holds 10 HCP and 6 hearts
+- **THEN** they open `2♦️`
+
+#### Scenario: Too strong for the weak range
+- **WHEN** an opener holds 11 HCP and 6 hearts
+- **THEN** they do not open `2♦️`
+
+#### Scenario: Responder is forced
+- **WHEN** partner opened Multi `2♦️` and RHO passed
+- **THEN** responder is under a one-round force
+
+### Requirement: Strong 2♣ opening
+The `strong_two_clubs` sub-convention SHALL open `2♣️` when no prior bid has been made and the
+hand holds 20–22 or 25–26 HCP. The opening SHALL establish `forcing: one_round`.
+
+#### Scenario: Twenty points
+- **WHEN** an opener holds 20 HCP that no earlier convention covers
+- **THEN** they open `2♣️`
+
+#### Scenario: Responder is forced
+- **WHEN** partner opened `2♣️` and RHO passed
+- **THEN** responder is under a one-round force
+
 ### Requirement: Jacoby transfers
-The `jacoby_transfer` sub-convention SHALL respond after `auction: [1NT, Pass]` in this order:
-`2♦️` with 5+ hearts (any strength); `2♥️` with exactly 5 spades. It SHALL define opener's
-completion: after `[1NT, Pass, 2D, Pass]` bid `2♥️`; after `[1NT, Pass, 2H, Pass]` bid `2♠️`.
+The `jacoby_transfer` sub-convention SHALL respond after `auction: [Pass*, 1NT, Pass]` in this
+order: `2♦️` with 5+ hearts (any strength); `2♥️` with exactly 5 spades. Both transfers SHALL
+establish `forcing: one_round`. It SHALL define opener's completion: after
+`[Pass*, 1NT, Pass, 2D, Pass]` bid `2♥️`; after `[Pass*, 1NT, Pass, 2H, Pass]` bid `2♠️`.
 
 #### Scenario: Transfer to hearts
 - **WHEN** partner opened `1NT` and responder holds 3 HCP with 5 hearts
@@ -225,20 +289,22 @@ completion: after `[1NT, Pass, 2D, Pass]` bid `2♥️`; after `[1NT, Pass, 2H, 
 - **THEN** neither transfer applies
 
 ### Requirement: 1NT responses in the Multi file
-The `multi_two_diamond` sub-convention SHALL also respond after `auction: [1NT, Pass]`, after its
-opening, in this order: `3NT` with 10–14 HCP, balanced and no 4-card major; `2NT` weakness
-transfer with 6–9 HCP and 6+ spades; `3♣️` transfer with 6–9 HCP and 6+ diamonds. It SHALL define
-opener's replies: after `[1NT, Pass, 2NT, Pass]` bid `3♠️`; after `[1NT, Pass, 3C, Pass]` bid
-`3♦️`.
+The `multi_two_diamond` sub-convention SHALL also respond after `auction: [Pass*, 1NT, Pass]`,
+after its opening, in this order: `3NT` with 10–14 HCP, balanced and no 4-card major,
+establishing `agreed: notrump`; `2NT` weakness transfer with 6–9 HCP and 6+ spades; `3♣️` transfer
+with 6–9 HCP and 6+ diamonds. Both transfers SHALL establish `forcing: one_round`. It SHALL define
+opener's replies: after `[Pass*, 1NT, Pass, 2NT, Pass]` bid `3♠️`; after
+`[Pass*, 1NT, Pass, 3C, Pass]` bid `3♦️`.
 
 #### Scenario: Weakness transfer completed
 - **WHEN** the auction is `1NT Pass 2NT Pass`
 - **THEN** opener bids `3♠️`
 
 ### Requirement: Baron
-The `baron` sub-convention SHALL respond `2♠️` after `auction: [1NT, Pass]` with 8+ HCP. It SHALL
-define opener's reply after `[1NT, Pass, 2S, Pass]`: `2NT` with 3–4 cards in every suit,
-otherwise the lowest 4-card suit at the three level.
+The `baron` sub-convention SHALL respond `2♠️` after `auction: [Pass*, 1NT, Pass]` with 8+ HCP,
+establishing `forcing: one_round`. It SHALL define opener's reply after
+`[Pass*, 1NT, Pass, 2S, Pass]`: `2NT` with 3–4 cards in every suit, otherwise the lowest 4-card
+suit at the three level.
 
 #### Scenario: Baron with a four-card major
 - **WHEN** responder holds 10 HCP, 4 hearts and a singleton, after `1NT Pass` on the Colin card
@@ -249,8 +315,9 @@ otherwise the lowest 4-card suit at the three level.
 - **THEN** opener bids `3♣️`
 
 ### Requirement: Colin Stayman
-The `colin_stayman` sub-convention SHALL respond `2♣️` after `auction: [1NT, Pass]` with 4+ hearts
-or 4+ spades. Opener's replies come from `strong_notrump`.
+The `colin_stayman` sub-convention SHALL respond `2♣️` after `auction: [Pass*, 1NT, Pass]` with 4+
+hearts or 4+ spades, establishing `forcing: one_round`. Opener's replies come from
+`strong_notrump`.
 
 #### Scenario: Weak hand with a four-card major
 - **WHEN** partner opened `1NT` and responder holds 4 HCP with 4 hearts, on the Colin card
@@ -272,8 +339,8 @@ conventions.
 ### Requirement: Colin card
 The `colin` card SHALL include, in order, `jacoby_transfer`, `multi_two_diamond`,
 `strong_two_clubs`, `baron`, `colin_stayman`, `strong_notrump`, `tartan`, `splinters` and
-`five_card_major`, followed by a
-card-level `2NT` opening before anyone has opened, with 10–12 HCP, 5+ clubs and 5+ diamonds.
+`five_card_major`, followed by a card-level `2NT` opening before anyone has opened, guarded by
+`auction: [Pass*]`, with 10–12 HCP, 5+ clubs and 5+ diamonds.
 
 #### Scenario: Minor two-suiter
 - **WHEN** an opener holds 10 HCP, 5 clubs and 5 diamonds

@@ -11,8 +11,10 @@ player sees partner through their own cards.
 Auction.Run
   └─ AuctionState          call history + what each player has shown (from the calls alone)
        ├─ History          []BidAction with per-player queries
-       ├─ Interpreter      (sheet, history before the call, caller, call) → HandModel
-       └─ [4]HandModel     shown models, indexed by Direction
+       ├─ Interpreter      (sheet, history and facts before the call, caller, call)
+       │                      → HandModel + facts the call establishes
+       ├─ [4]HandModel     shown models, indexed by Direction
+       └─ [2]Facts         agreed suit and force in effect, per partnership
   └─ Perspective           one player's view: own hand + partner's model tightened by own cards
        └─ AuctionContext → conditions → ConventionSheet.Bid
 ```
@@ -23,6 +25,8 @@ Auction.Run
 - Read every call in the auction context in which it was made.
 - Keep a bid with several meanings (Multi) as alternatives, and narrow them as the auction goes on.
 - Let responses and opener's rebids depend on partner's shown model and the player's own hand.
+- Let a rule depend on what the auction has established (an agreed suit, a force) without listing
+  every sequence that leads there.
 - Ship standard responses and rebids for every built-in opening, and splinters as the first
   response file shared by several openings.
 
@@ -30,6 +34,8 @@ Auction.Run
 - Using opponents' calls to choose a response or rebid. Opponents' models are still tracked and
   exposed unchanged, but no built-in convention uses them.
 - Overcalls and contested auctions.
+- Doubles and redoubles. `Bid` only holds a level and a strain, so contested auctions will need a
+  new call type before `auction` patterns can describe them.
 - Inference from calls that were *not* made: a Pass, or earlier conventions in the sheet that did
   not apply.
 - Responder's second call and later rounds; opener's rebids after a 2/1 game-forcing response
@@ -44,12 +50,37 @@ Auction.Run
 `AuctionContext.History` changes to this type and `lastBidByDir` is folded into `LastBidBy`. The
 auction as it stood when call *i* was made is `h[:i]`.
 
-### D2: `auction` lists every call from the opening (user decision)
-`auction: [1H, Pass, 2H, Pass]` matches when the calls from the opening bid onwards, by all four
-seats, are exactly the listed calls. Passes before the opening are dropped, so the same rule works
-in every seat. An empty list matches before anyone has opened. Listing opponents' calls now means
-overcalls can be added later without changing the syntax: `[1H, 1S]` will describe a contested
-auction.
+### D2: `auction` matches the whole call history (user decision)
+`auction: [...]` matches when the pattern covers the entire history, from the dealer's first call
+to the most recent one, by all four seats. Leading passes are part of the history and are never
+dropped, so a pattern can tell which seat opened and whether the player to call has already
+passed.
+
+A pattern element is either a call (`1H`, `2NT`, `Pass`) or a wildcard:
+
+| Element | Matches |
+|---------|---------|
+| `Any` | exactly one call of any kind |
+| `Any*` | zero or more calls of any kind |
+| `Pass*` | zero or more passes |
+
+Matching is anchored at both ends, like a glob over calls. The wildcards are words rather than
+`*` and `?` because those characters are YAML syntax inside a flow sequence and would have to be
+quoted in every pattern. Any other element must parse as a bid; anything else is a load error.
+
+| Pattern | Meaning |
+|---------|---------|
+| `[]` | the dealer is to call |
+| `[Pass*]` | nobody has opened |
+| `[Pass*, 1H, Pass]` | partner opened `1♥️` in any seat, RHO passed |
+| `[1H, Pass]` or `[Pass, 1H, Pass]` | as above, and the player to call has not passed |
+| `[Pass*, 1H, Pass, Any*]` | partner opened `1♥️` and RHO passed; any calls since |
+
+Seat-independent rules use `Pass*`; rules that only apply to an unpassed hand (game-forcing
+responses) list the two unpassed patterns under `any`.
+
+`partner_bid`, `rho_bid` and `lho_bid` stay for compatibility; the built-in data moves to
+`auction`.
 
 `partner_bid`, `rho_bid` and `lho_bid` stay for compatibility; the built-in data moves to
 `auction`.
@@ -77,11 +108,12 @@ At load time each convention keeps its `conditionNode`. The interpreter turns th
 |------|--------|
 | `hcp`, `suit_length`, `balanced` | one alternative with those bounds |
 | `rule_of_20` | one unconstrained alternative |
-| auction-only (`auction`, `no_prior_bids`, `*_bid`) | evaluated on the history before the call: true → one unconstrained alternative, false → empty |
+| auction-only (`auction`, `no_prior_bids`, `*_bid`, `agreed`, `forced`) | evaluated on the history and facts before the call: true → one unconstrained alternative, false → empty |
 | partner-model (`partner_hcp`, `partner_suit_length`, `lho_min_hcp`, `rho_min_hcp`) | evaluated on the shown models; true → unconstrained, false → empty. Without the caller's own cards these can only be checked approximately, so an inconclusive result counts as true |
 | partnership (`partnership_hcp`, `fit`, `*_fit`) | translated into bounds on the caller's own hand using partner's shown model, e.g. `partnership_hcp: [25, 40]` opposite 15–17 gives the caller 10+ HCP |
 | `all` | intersection of the children |
 | `any` | concatenation of the children's alternatives |
+| `not` | see D9 |
 
 The meaning of a call is the union of the models of **every** convention in the caller's sheet
 whose bid equals the call and whose model is not empty. Taking every candidate, not just the
@@ -126,7 +158,58 @@ firing (e.g. opener passing `2♥️` after Multi with weak hearts).
   over.
 
 Every response and rebid is guarded by an `auction` pattern, so responses never collide with
-openings (guarded by `auction: []` or `no_prior_bids`) whatever the include order.
+openings (guarded by `auction: [Pass*]`) whatever the include order.
+
+### D9: `not` negates one condition
+`not: <condition>` passes when its child fails. It takes exactly one child; a list of children is
+written as `not: {any: [...]}` or `not: {all: [...]}`.
+
+When a call is read (D4), the negated child is handled by its kind:
+
+| Child | Result |
+|-------|--------|
+| auction-only, including `agreed` and `forced` | the child's truth value is flipped: true → empty, false → one unconstrained alternative |
+| `hcp`, `suit_length` | the complement of the child's box: one alternative for each bound that can be broken (below the minimum, above the maximum), per dimension |
+| `all`, `any` | pushed down with De Morgan's laws, then handled as above |
+| `balanced`, `rule_of_20`, partner-model, partnership | one unconstrained alternative |
+
+The last row is the safe choice: these nodes are already approximations, and the complement of an
+approximation is not an approximation of the complement. Treating them as unconstrained can only
+widen the shown model, never make it wrong. Complements add alternatives, so they count toward the
+cap in risk 1.
+
+### D10: Conventions declare the facts their call establishes
+A convention entry may carry `establishes` next to `bid` and `conditions`:
+
+```yaml
+- bid: 2H
+  establishes: {agreed: hearts}
+  conditions: ...
+- bid: 2NT
+  establishes: {agreed: hearts, forcing: game}
+  conditions: ...
+```
+
+| Fact | Values | Lasts |
+|------|--------|-------|
+| `agreed` | `clubs`, `diamonds`, `hearts`, `spades`, `notrump` | until a later call by the same partnership agrees a different strain |
+| `forcing` | `one_round` | for partner's next call only |
+| | `game` | until the partnership's contract reaches game (`3NT`, `4♥️`, `4♠️`, `5♣️`, `5♦️` or higher) |
+
+`AuctionState` keeps the facts for each partnership. When the interpreter reads a call, it
+returns the facts as well as the hand model. A fact is recorded only when **every** convention
+that contributes to the call's meaning (D4) declares it with the same value, the same caution as
+D5: if one reading of the call agrees hearts and another does not, hearts are not agreed. Facts
+come from calls alone, so both partnerships see the same facts.
+
+Two conditions read the facts of the bidder's partnership:
+
+- `agreed: <strain>` passes when that strain is the agreed one.
+- `forced: true` passes when partner's most recent call established `forcing: one_round`, or a
+  `forcing: game` is in effect and the contract is below game. `forced: false` passes otherwise.
+
+This answers "after a suit has been agreed" in one condition, however the auction got there:
+`agreed: hearts` holds after `1♥️–2♥️`, `1♥️–3♥️` and `1♥️–2NT` alike, but not after `1♥️–1♠️`.
 
 ## Risks / Trade-offs
 - **Alternatives multiply**: `all` over several `any` nodes forms a cross product. Mitigation:
@@ -142,14 +225,21 @@ openings (guarded by `auction: []` or `no_prior_bids`) whatever the include orde
   needs no code change.
 - **Gaps until the next change**: auctions can stop early where no rebid is defined (e.g. opener
   passes a 2/1 response). This is listed under Non-Goals and covered by a follow-up change.
+- **Longer patterns**: because leading passes stay in the history (D2), seat-independent rules
+  need a `Pass*` prefix, and rules for unpassed hands need two patterns under `any`.
+- **Simplified fact lifetimes** (D10): a force is either one round or until game, and an agreed
+  strain can only be replaced, not withdrawn. Auctions that need finer rules (a force that ends
+  at 3NT but not at 4♣️, or a later suit preference) are not covered yet.
+- **Facts must be declared**: a raise that forgets `establishes` leaves the suit unagreed. The
+  round-trip tests check the declared facts for every built-in raise and forcing response.
 
 ## Migration Plan
-1. Phases 1–5 in `tasks.md` are refactors plus new primitives; existing round-trip tests must pass
+1. Phases 1–8 in `tasks.md` are refactors plus new primitives; existing round-trip tests must pass
    unchanged after each phase.
-2. Phase 7 moves the 1NT response files to `auction` patterns and reorders the Colin card. Existing Colin
-   1NT response tests switch to full auction histories (`[1NT, Pass]`) instead of a lone partner
-   call.
-3. Phases 7–8 add data and tests only.
+2. Phase 9 moves the openings to `auction: [Pass*]` and the 1NT response files to
+   `auction: [Pass*, 1NT, Pass]`, and reorders the Colin card. Existing Colin 1NT response tests
+   switch to full auction histories instead of a lone partner call.
+3. Phases 9–10 add data and tests only.
 
 ## Open Questions
 - The Two Over One card includes `multi_two_diamond`, so it inherits the Colin-style `2NT`

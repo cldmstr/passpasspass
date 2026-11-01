@@ -28,6 +28,40 @@ maximum exceeds 13 minus the sum of the other suits' minimums.
 - **WHEN** a model has 6+ hearts and 6+ spades
 - **THEN** clubs and diamonds are limited to 0–1 cards each
 
+### Requirement: Established facts
+The auction SHALL keep, for each partnership, an agreed strain and the forces in effect. After each
+call, the system SHALL record the facts the call establishes: those declared under `establishes`
+by every convention that contributes to the call's meaning (see Bid inference), with the same
+value. A fact declared by only some of those conventions, or with different values, SHALL NOT be
+recorded. The facts SHALL apply to the caller's partnership and SHALL last as follows:
+
+- `agreed`: until a later call by the same partnership establishes a different agreed strain.
+- `forcing: one_round`: for partner's next call only.
+- `forcing: game`: until the contract held by the partnership reaches game: `3NT`, `4♥️`, `4♠️`,
+  `5♣️`, `5♦️` or higher.
+
+Facts SHALL come from the calls alone, never from the caller's hand.
+
+#### Scenario: Raise agrees the suit
+- **WHEN** North opens `1♥️`, East passes, and South raises to `2♥️` with a convention that establishes `agreed: hearts`
+- **THEN** North–South have agreed hearts and East–West have agreed nothing
+
+#### Scenario: Later agreement replaces an earlier one
+- **WHEN** a partnership has agreed hearts and one of its players then makes a call that establishes `agreed: notrump`
+- **THEN** the partnership has agreed notrump
+
+#### Scenario: Readings disagree
+- **WHEN** a call is explained by two conventions, one establishing `agreed: hearts` and one establishing no agreed strain
+- **THEN** no agreed strain is recorded for the call
+
+#### Scenario: One-round force expires
+- **WHEN** South's transfer establishes `forcing: one_round`, West passes, and North completes the transfer with a call that establishes no force
+- **THEN** South is not under a force at South's next turn
+
+#### Scenario: Game force lasts until game
+- **WHEN** South's Jacoby `2NT` establishes `forcing: game` and North rebids `3♥️`
+- **THEN** South is still under a force, and the force ends once the partnership bids `4♥️`
+
 ## MODIFIED Requirements
 
 ### Requirement: Bid inference
@@ -39,13 +73,17 @@ convention's model is derived from its conditions:
 
 - `hcp` and `suit_length` set bounds; `balanced` sets 2–5 cards in every suit; `rule_of_20` sets
   nothing.
-- Auction conditions (`auction`, `no_prior_bids`, `partner_bid`, `rho_bid`, `lho_bid`) are checked
-  against the auction before the call, and a convention whose auction conditions fail contributes
-  nothing.
+- Auction conditions (`auction`, `no_prior_bids`, `partner_bid`, `rho_bid`, `lho_bid`, `agreed`,
+  `forced`) are checked against the auction and the established facts before the call, and a
+  convention whose auction conditions fail contributes nothing.
 - Conditions on the partnership (`partnership_hcp`, `fit`, `heart_fit`, `spade_fit`, `major_fit`,
   `minor_fit`) become bounds on the caller's own hand, given partner's shown model at the time of
   the call.
 - `all` intersects its children; `any` keeps each child as a separate alternative.
+- `not` flips an auction condition; turns `hcp` and `suit_length` into their complement, with one
+  alternative for each bound that can be broken; is pushed through `all` and `any` by De Morgan's
+  laws; and leaves the model unconstrained for `balanced`, `rule_of_20`, conditions on other
+  players' models, and partnership conditions.
 
 A Pass SHALL leave the model unchanged.
 
@@ -61,6 +99,14 @@ A Pass SHALL leave the model unchanged.
 - **WHEN** a seat opens a Multi `2♦️`
 - **THEN** its model holds four alternatives: 23–24 balanced, 6–10 with 6+ hearts, 6–10 with 6+ spades, and 27+
 
+#### Scenario: Negated HCP range
+- **WHEN** the only convention for a call requires `not: {hcp: [0, 9]}`
+- **THEN** the caller's model shows 10–37 HCP
+
+#### Scenario: Negated approximation
+- **WHEN** the only convention for a call requires `not: {balanced: true}`
+- **THEN** the call leaves the caller's model unchanged
+
 #### Scenario: Partnership condition becomes own bounds
 - **WHEN** partner has shown 15–17 HCP and the caller's convention requires `partnership_hcp: [25, 40]`
 - **THEN** the caller's model shows at least 10 HCP
@@ -69,8 +115,9 @@ A Pass SHALL leave the model unchanged.
 Before each call, the system SHALL give the seat's convention sheet a context built from that
 seat's own view of the auction: the seat's hand, its direction, the auction history so far,
 partner's shown model tightened by the seat's own cards, the LHO's and RHO's shown models
-unchanged, and the partnership evaluation. Tightening SHALL limit partner to at most 13 minus the
-seat's own length in each suit and at most 40 minus the seat's own HCP.
+unchanged, the facts established for the seat's partnership, and the partnership evaluation.
+Tightening SHALL limit partner to at most 13 minus the seat's own length in each suit and at most
+40 minus the seat's own HCP.
 
 #### Scenario: Responder sees the opening
 - **WHEN** North has opened `1NT` and South is about to call
