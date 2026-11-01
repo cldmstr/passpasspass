@@ -85,8 +85,8 @@ by the auction, and it is the given strain. Strains SHALL be `clubs`, `diamonds`
 ### Requirement: Forcing condition
 `forced: true` SHALL pass when the bidder is under a force from partner: partner's most recent call
 established `forcing: one_round`, or a `forcing: game` established by the bidder's partnership is
-in effect and the current contract is below game. Like the flag keys, `forced` SHALL accept only
-`true`; any other value SHALL be a load error.
+in effect and the current contract is below game. `forced` SHALL follow the flag values
+requirement.
 
 #### Scenario: One-round force
 - **WHEN** partner's last call was a transfer that establishes `forcing: one_round`, and the condition is `forced: true`
@@ -177,6 +177,15 @@ SHALL negate their conjunction. An empty `not` SHALL be a load error. Combinator
 - **THEN** the condition passes
 
 
+### Requirement: Flag values
+`balanced`, `rule_of_20` and `forced` SHALL accept only the value `true`. Any other value,
+including `false`, SHALL be a load error stating that only `true` is accepted and that a condition
+is negated with `not`.
+
+#### Scenario: False flag
+- **WHEN** a condition is `balanced: false`
+- **THEN** loading fails with an error stating that only `true` is accepted and suggesting `not: {balanced: true}`
+
 ### Requirement: Partnership HCP condition
 `partnership_hcp: [min, max]` SHALL pass when, for every alternative in partner's model as seen by
 the bidder, the bidder's HCP plus that alternative's HCP range lies entirely within `min`..`max`.
@@ -196,3 +205,8 @@ the bidder, the bidder's HCP plus that alternative's HCP range lies entirely wit
 convention file, and `auction` expresses everything it did.
 **Migration**: `partner_bid: "1NT"` becomes `auction: [Pass*, 1NT, Pass]` for a response to an
 opening, or a pattern listing the whole auction for later rounds.
+
+### Requirement: No prior bids condition
+**Reason**: after the built-in openings move to `auction: [Pass*]`, `no_prior_bids` is used by no
+convention file, and the pattern expresses the same thing.
+**Migration**: `no_prior_bids: true` becomes `auction: [Pass*]`.

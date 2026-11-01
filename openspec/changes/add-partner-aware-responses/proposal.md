@@ -41,8 +41,8 @@ inference cannot support this:
   `splinters`.
 - **BREAKING (data)**: openings switch from `no_prior_bids: true` to `auction: [Pass*]`, and the
   1NT response files (`jacoby_transfer`, the 1NT responses in `multi_two_diamond`, `baron`,
-  `colin_stayman`) switch from `partner_bid` to `auction` patterns. `partner_bid` is then used by
-  no file and is removed.
+  `colin_stayman`) switch from `partner_bid` to `auction` patterns. `no_prior_bids` and
+  `partner_bid` are then used by no file and are removed.
   `baron` and `colin_stayman` move ahead of `strong_notrump` in the Colin card so Colin's scheme
   beats standard Stayman, and the Two Over One card gains `jacoby_transfer`.
 

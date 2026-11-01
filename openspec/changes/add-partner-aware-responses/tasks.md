@@ -52,7 +52,7 @@
 - [ ] 8.4 Tests: each new key at its boundaries; `fit: {hearts: [8, 14]}` and `fit: {spades: [7, 13]}` fail to load; opposite a Multi `2♦️` neither `fit: {hearts: [8, 13]}` nor `fit: {spades: [8, 13]}` holds; an illegal first match falls through to the next convention; an explicit `Pass` convention stops the search
 
 ## 9. Migrating existing data
-- [ ] 9.1 Replace `no_prior_bids: true` with `auction: [Pass*]` in all opening conventions, including the Colin card's `2NT`
+- [ ] 9.1 Replace `no_prior_bids: true` with `auction: [Pass*]` in all opening conventions, including the Colin card's `2NT`; then remove the `no_prior_bids` condition, its parser and its tests
 - [ ] 9.2 Replace `partner_bid: "1NT"` with `auction: [Pass*, 1NT, Pass]` in `jacoby_transfer.yaml`, `multi_two_diamond.yaml`, `baron.yaml` and `colin_stayman.yaml`; then remove the `partner_bid` condition, its parser and its tests
 - [ ] 9.3 Add opener's replies: transfer completion in `jacoby_transfer.yaml`; `3♠️` after `2NT` and `3♦️` after `3♣️` in `multi_two_diamond.yaml`; Baron replies after `2♠️` in `baron.yaml`
 - [ ] 9.4 Declare `forcing: one_round` on the strong `2♣️` and Multi `2♦️` openings and on the 1NT responses that ask opener to bid (transfers, the `2NT` and `3♣️` transfers, Baron, Stayman); declare `agreed: notrump` on the Multi file's `3NT` response

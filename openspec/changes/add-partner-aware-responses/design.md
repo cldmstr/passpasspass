@@ -79,8 +79,8 @@ quoted in every pattern. Any other element must parse as a bid; anything else is
 Seat-independent rules use `Pass*`; rules that only apply to an unpassed hand (game-forcing
 responses) list the two unpassed patterns under `any`.
 
-The built-in data moves to `auction`, after which `partner_bid` is used by no file and is removed
-(task 9.2). `rho_bid` and `lho_bid` were already removed by `refactor-condition-nodes`.
+The built-in data moves to `auction`, after which `no_prior_bids` and `partner_bid` are used by no
+file and are removed (tasks 9.1 and 9.2). `rho_bid` and `lho_bid` were already removed by `refactor-condition-nodes`.
 
 ### D3: `HandModel` holds a list of alternatives
 ```go
@@ -106,7 +106,7 @@ auction. Every node type implements it:
 |------|--------|
 | `hcp`, `suit_length`, `balanced` | one alternative with those bounds |
 | `rule_of_20` | one unconstrained alternative |
-| auction-only (`auction`, `no_prior_bids`, `agreed`, `forced`) | evaluated on the history and facts before the call: true → one unconstrained alternative, false → empty |
+| auction-only (`auction`, `agreed`, `forced`) | evaluated on the history and facts before the call: true → one unconstrained alternative, false → empty |
 | partner-model (`partner_hcp`, `partner_suit_length`) | evaluated on the shown models; true → unconstrained, false → empty. Without the caller's own cards these can only be checked approximately, so an inconclusive result counts as true |
 | partnership (`partnership_hcp`, `fit`) | translated into bounds on the caller's own hand using partner's shown model, e.g. `partnership_hcp: [25, 40]` opposite 15–17 gives the caller 10+ HCP |
 | `all` | intersection of the children |

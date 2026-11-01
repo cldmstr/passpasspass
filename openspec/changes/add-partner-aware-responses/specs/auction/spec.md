@@ -73,7 +73,7 @@ convention's model is derived from its conditions:
 
 - `hcp` and `suit_length` set bounds; `balanced` sets 2–5 cards in every suit; `rule_of_20` sets
   nothing.
-- Auction conditions (`auction`, `no_prior_bids`, `agreed`, `forced`) are checked against the auction and the established facts before the call, and a
+- Auction conditions (`auction`, `agreed`, `forced`) are checked against the auction and the established facts before the call, and a
   convention whose auction conditions fail contributes nothing.
 - Conditions on the partnership (`partnership_hcp`, `fit`) become bounds on the caller's own hand, given partner's shown model at the time of
   the call.
