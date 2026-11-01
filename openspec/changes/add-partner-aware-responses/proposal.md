@@ -46,6 +46,8 @@ inference cannot support this:
   beats standard Stayman, and the Two Over One card gains `jacoby_transfer`.
 
 ## Impact
+- Requires `refactor-condition-nodes`: conditions are parsed key by key into typed nodes, so
+  the new keys are parser-table entries and reading a call is a method on each node.
 - Affected specs: `auction`, `bidding-conditions`, `convention-evaluation`, `convention-files`,
   `standard-conventions`
 - Affected code: `auction.go` (history, hand model, interpretation, per-player view,

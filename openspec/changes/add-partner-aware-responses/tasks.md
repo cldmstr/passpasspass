@@ -8,12 +8,12 @@
 ## 2. `auction` pattern condition
 - [ ] 2.1 Add a pattern type whose elements are a call or one of the wildcards `Any`, `Any*` and `Pass*` (design D2), parsed from strings; any other element must parse as a bid
 - [ ] 2.2 Add `NewAuctionPatternCondition(pattern)`: matches the whole history, from the dealer's first call, anchored at both ends; leading passes are part of the history
-- [ ] 2.3 Add the `auction: [<element>, ...]` YAML key to `conditionNode` and `buildCondition`; an invalid element is a load error
+- [ ] 2.3 Add an `auction` parser to the condition parser table; an invalid element is a load error
 - [ ] 2.4 Tests: `[]` matches only before the dealer's call; `[1H, Pass]` matches a dealer opening but not a third-seat opening; `[Pass*, 1H, Pass]` matches the opening in every seat; `[1H, Pass]` and `[Pass, 1H, Pass]` tell an unpassed responder from a passed one; `Any` matches exactly one call; `Any*` matches zero, one and several calls; `Pass*` does not match a bid; a longer history does not match; an opponent's bid in place of a Pass does not match; an invalid element fails to load
 
 ## 3. `not` node
-- [ ] 3.1 Add `NewNotCondition(c)` and the `not: <condition>` YAML key; `not` takes exactly one child node, and an empty child is a load error
-- [ ] 3.2 Tests: `not` flips a hand condition and an auction pattern; `not` over `any` and over `all`; nested inside `all`; empty child fails to load
+- [ ] 3.1 Add `NewNotCondition(c)` and a `not` parser; its value is one condition (a mapping with one or more keys, or a list) negated as a whole; an empty value is a load error; the flag-key error message now suggests `not`
+- [ ] 3.2 Tests: `not` flips a hand condition and an auction pattern; `not` over a mapping with two keys, over `any` and over `all`; nested inside `all`; empty value fails to load
 
 ## 4. Hand model with alternatives
 - [ ] 4.1 Add `HandModel{Cases []HandRange}` with `Intersect`, `Tighten`, `Bounds`, `IsEmpty`, and a constructor for the unconstrained model
@@ -21,13 +21,13 @@
 - [ ] 4.3 Tests: intersecting disjoint alternatives yields an empty model; 6+ hearts and 6+ spades tightens both minors to 0–1; `Bounds` covers all alternatives
 
 ## 5. Reading calls in context
-- [ ] 5.1 Add a function that compiles a `conditionNode` into a `HandModel` for a given history prefix and the facts before the call, following the table in design D4 (three-valued guards, `any` → alternatives, `all` → intersection)
+- [ ] 5.1 Add `Shown` to the `Condition` interface and implement it on every node type: the `HandModel` a node allows for a given history prefix and the facts before the call, following the table in design D4 (three-valued guards, `any` → alternatives, `all` → intersection)
 - [ ] 5.2 `balanced` contributes 2–5 cards in every suit
 - [ ] 5.3 Translate `partnership_hcp`, `fit` and the `*_fit` keys into bounds on the caller's own hand, using partner's shown model at the time of the call
-- [ ] 5.4 Compile `not` as in design D9: flip auction-only guards; complement `hcp` and `suit_length` boxes; push through `all` and `any` with De Morgan's laws; approximated nodes give one unconstrained alternative
+- [ ] 5.4 Implement `Shown` on the `not` node as in design D9: flip auction-only guards; complement `hcp` and `suit_length` boxes; push through `all` and `any` with De Morgan's laws; approximated nodes give one unconstrained alternative
 - [ ] 5.5 Add the `Interpreter` interface and the default implementation: the union over every convention whose bid equals the call and whose model is not empty
 - [ ] 5.6 Cap alternatives per convention (design risk 1, including alternatives added by `not`) and fail loading above the cap
-- [ ] 5.7 Remove `inferAndUpdate`, `extractBounds`, `applyBounds` and `intersectRanges`
+- [ ] 5.7 Remove `inferAndUpdate`, `extractBounds`, `applyBounds` and `intersectRanges`, and the `applyBounds` exclusion in `.golangci.yml`
 - [ ] 5.8 Tests on the Colin card: `1NT` opening shows 15–17 and 2–5 in every suit; a `2♦️` response to `1NT` shows 5+ hearts, not Multi; a Multi `2♦️` opening shows four alternatives; a Pass leaves the model unchanged
 - [ ] 5.9 Tests for `not`: `not: {hcp: [0, 9]}` shows 10+; `not: {suit_length: {hearts: [4, 13]}}` shows 0–3 hearts; `not: {balanced: true}` leaves the model unconstrained; a negated auction guard that holds removes the convention
 
@@ -35,18 +35,18 @@
 - [ ] 6.1 Add `AuctionState` (history, `[4]HandModel` shown models, facts per partnership, interpreter, sheets by seat) with `Record(d, bid)`; constructor takes all dependencies
 - [ ] 6.2 Add `Perspective` (own hand, partner's model tightened by own cards, LHO/RHO passed through, own partnership's facts) and build `AuctionContext` and `PartnershipEval` from it
 - [ ] 6.3 Change `HandRange` fields in `AuctionContext` to `HandModel`; `PartnershipEval` uses partner's `Bounds()`
-- [ ] 6.4 Rewrite `Auction.Run` on top of `AuctionState`; `NewAuction` takes the state; `Table.RunAuction` wires dealer, sheet, interpreter and state
+- [ ] 6.4 Rewrite `Auction.Run` on top of `AuctionState` and remove its exclusion in `.golangci.yml`; `NewAuction` takes the state; `Table.RunAuction` wires dealer, sheet, interpreter and state
 - [ ] 6.5 Tests: partner's suit maximum drops to 13 minus own length; partner's HCP maximum drops to 40 minus own HCP; existing auction tests still pass
 
 ## 7. Established facts
-- [ ] 7.1 Add the optional `establishes: {agreed: <strain>, forcing: one_round | game}` key to convention entries; store it on `Convention`; an unknown fact, strain or forcing value is a load error
+- [ ] 7.1 Add the optional `establishes: {agreed: <strain>, forcing: one_round | game}` key to convention entries, decoded with unknown keys rejected; store it on `Convention`; an unknown fact, strain or forcing value is a load error
 - [ ] 7.2 The interpreter returns the facts a call establishes: only facts that every contributing convention declares with the same value (design D10)
 - [ ] 7.3 `AuctionState.Record` updates the caller's partnership: a new `agreed` replaces the old one; `one_round` applies to partner's next call only; `game` lasts until the partnership's contract reaches game
-- [ ] 7.4 Add `agreed: <strain>` and `forced: true|false` (conditions and YAML keys), reading the bidder's partnership facts from `AuctionContext`; the interpreter treats both as auction-only guards
+- [ ] 7.4 Add `agreed: <strain>` and `forced: true` (conditions and parsers; `forced` accepts only `true`), reading the bidder's partnership facts from `AuctionContext`; the interpreter treats both as auction-only guards
 - [ ] 7.5 Tests with a temporary card: a rule guarded by `agreed: hearts` fires after `1♥️–2♥️`, `1♥️–3♥️` and `1♥️–2NT` but not after `1♥️–1♠️`; a later agreement replaces an earlier one; facts of one partnership are not seen as the other's; `forced` holds for partner's next call after `one_round` and not the call after; `forced` holds after a game force until game is bid; two conventions that explain the same call with different facts record neither
 
 ## 8. Conditions on partner's model and legal selection
-- [ ] 8.1 Add `partner_hcp: [min, max]`, `partner_suit_length: {suit: [min, max]}` and `fit: {suit: [min, max]}` (conditions and YAML keys)
+- [ ] 8.1 Add `partner_hcp: [min, max]`, `partner_suit_length: {suit: [min, max]}` and `fit: {suit: [min, max]}` (conditions and parsers; ranges follow the range-value limits)
 - [ ] 8.2 Apply the all-alternatives rule (design D5) to the new keys and to `partnership_hcp`, `major_fit`, `minor_fit`, `heart_fit` and `spade_fit`
 - [ ] 8.3 `ConventionSheet.Bid` skips conventions whose bid is neither Pass nor higher than the current contract; remove the replace-with-Pass step from `Run`
 - [ ] 8.4 Tests: each new key at its boundaries; opposite a Multi `2♦️` neither `fit: {hearts: [8, 13]}` nor `fit: {spades: [8, 13]}` holds; an illegal first match falls through to the next convention; an explicit `Pass` convention stops the search

@@ -100,9 +100,10 @@ Ranges stay boxes. Shape facts that a box cannot express, such as "at most one d
 Rule of 20, are approximated or dropped: `balanced` becomes 2–5 in every suit; `rule_of_20`
 contributes nothing.
 
-### D4: Calls are read by compiling condition trees with three-valued guards
-At load time each convention keeps its `conditionNode`. The interpreter turns that tree into a
-`HandModel` for one call in one auction:
+### D4: Calls are read from condition nodes with three-valued guards
+Conditions are typed nodes (`refactor-condition-nodes`). The `Condition` interface gains a second
+method next to `Eval`, `Shown`, which returns the `HandModel` a node allows for one call in one
+auction. Every node type implements it:
 
 | Node | Result |
 |------|--------|
@@ -161,8 +162,10 @@ Every response and rebid is guarded by an `auction` pattern, so responses never 
 openings (guarded by `auction: [Pass*]`) whatever the include order.
 
 ### D9: `not` negates one condition
-`not: <condition>` passes when its child fails. It takes exactly one child; a list of children is
-written as `not: {any: [...]}` or `not: {all: [...]}`.
+`not: <condition>` passes when its condition fails. The value is one condition: a mapping, which
+may hold several keys, or a list. Like everywhere else, several keys or items form a conjunction,
+so `not: {hcp: [0, 9], suit_length: {hearts: [4, 13]}}` means "not both", and is read as `not`
+over an `all`.
 
 When a call is read (D4), the negated child is handled by its kind:
 
@@ -206,7 +209,8 @@ Two conditions read the facts of the bidder's partnership:
 
 - `agreed: <strain>` passes when that strain is the agreed one.
 - `forced: true` passes when partner's most recent call established `forcing: one_round`, or a
-  `forcing: game` is in effect and the contract is below game. `forced: false` passes otherwise.
+  `forcing: game` is in effect and the contract is below game. Like the other flag keys it
+  accepts only `true`; the opposite is `not: {forced: true}`.
 
 This answers "after a suit has been agreed" in one condition, however the auction got there:
 `agreed: hearts` holds after `1♥️–2♥️`, `1♥️–3♥️` and `1♥️–2NT` alike, but not after `1♥️–1♠️`.

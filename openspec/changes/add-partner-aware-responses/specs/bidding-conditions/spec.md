@@ -85,8 +85,8 @@ by the auction, and it is the given strain. Strains SHALL be `clubs`, `diamonds`
 ### Requirement: Forcing condition
 `forced: true` SHALL pass when the bidder is under a force from partner: partner's most recent call
 established `forcing: one_round`, or a `forcing: game` established by the bidder's partnership is
-in effect and the current contract is below game. `forced: false` SHALL pass exactly when
-`forced: true` fails.
+in effect and the current contract is below game. Like the flag keys, `forced` SHALL accept only
+`true`; any other value SHALL be a load error.
 
 #### Scenario: One-round force
 - **WHEN** partner's last call was a transfer that establishes `forcing: one_round`, and the condition is `forced: true`
@@ -106,7 +106,8 @@ in effect and the current contract is below game. `forced: false` SHALL pass exa
 
 ### Requirement: Partner HCP condition
 `partner_hcp: [min, max]` SHALL pass when every alternative in partner's model, as seen by the
-bidder, has its HCP range within `min`..`max`.
+bidder, has its HCP range within `min`..`max`. The range SHALL follow the range values
+requirement for the HCP of one hand.
 
 #### Scenario: Strong notrump partner
 - **WHEN** partner has shown 15–17 and the condition is `partner_hcp: [15, 17]`
@@ -118,7 +119,8 @@ bidder, has its HCP range within `min`..`max`.
 
 ### Requirement: Partner suit length condition
 `partner_suit_length: {<suit>: [min, max], ...}` SHALL pass when, for every listed suit, every
-alternative in partner's model has its length range in that suit within `min`..`max`.
+alternative in partner's model has its length range in that suit within `min`..`max`. Suits and
+ranges SHALL follow the suit length condition.
 
 #### Scenario: Transfer accepted
 - **WHEN** partner has shown 5+ hearts after a transfer and the condition is `partner_suit_length: {hearts: [5, 13]}`
@@ -127,6 +129,7 @@ alternative in partner's model has its length range in that suit within `min`..`
 ### Requirement: Fit condition
 `fit: {<suit>: [min, max], ...}` SHALL pass when, for every listed suit and every alternative in
 partner's model, the bidder's length plus that alternative's length range lies within `min`..`max`.
+Ranges SHALL follow the range values requirement for a fit (8–13).
 
 #### Scenario: Eight-card fit
 - **WHEN** the bidder holds 3 hearts, partner has shown 5–6 hearts, and the condition is `fit: {hearts: [8, 13]}`
@@ -140,8 +143,9 @@ partner's model, the bidder's length plus that alternative's length range lies w
 
 ### Requirement: Combinators
 `all: [...]` SHALL pass when every child passes. `any: [...]` SHALL pass when at least one child
-passes. `not: <condition>` SHALL take exactly one child and SHALL pass when that child fails; a
-`not` without a child SHALL be a load error. Combinators SHALL nest.
+passes. `not: <condition>` SHALL take one condition, a mapping or a sequence, and SHALL pass when
+that condition fails; when the mapping holds several keys or the sequence several items, `not`
+SHALL negate their conjunction. An empty `not` SHALL be a load error. Combinators SHALL nest.
 
 #### Scenario: Any of two shapes
 - **WHEN** the condition is `any` of 6+ hearts or 6+ spades, and the hand holds 6 spades and 2 hearts
@@ -154,6 +158,10 @@ passes. `not: <condition>` SHALL take exactly one child and SHALL pass when that
 #### Scenario: Excluding an auction
 - **WHEN** the condition is `not: {auction: [Pass*, 1NT, Pass]}` and the calls so far are `1NT Pass`
 - **THEN** the condition fails
+
+#### Scenario: Negating several keys
+- **WHEN** the condition is `not: {hcp: [0, 9], suit_length: {hearts: [4, 13]}}` and the hand holds 5 HCP and 2 hearts
+- **THEN** the condition passes, because the two keys do not both hold
 
 #### Scenario: Negating a combinator
 - **WHEN** the condition is `not: {any: [{hcp: [0, 5]}, {hcp: [16, 37]}]}` and the hand holds 10 HCP
