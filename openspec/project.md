@@ -54,7 +54,7 @@ Main types and their files:
 - Boundary values of every range (lowest, highest, one outside) get their own test case.
 
 ### Git Workflow
-- Main branch: `main`.
+- Trunk-based: commit directly to `main`, without feature branches.
 - Do not add `Co-Authored-By: Claude` trailers to commit messages.
 
 ## Domain Context

@@ -48,5 +48,6 @@ go build -o ppp ./cmd/ppp
 
 - Constructor functions (`New*`) must not instantiate other structs internally. Pass all
   dependencies in as parameters.
+- Trunk-based development: commit directly to `main`. Do not create branches before committing.
 - Do not add `Co-Authored-By: Claude` trailers to commit messages.
 - When behaviour changes, update the matching spec through a change's spec deltas.
