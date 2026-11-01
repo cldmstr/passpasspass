@@ -1,10 +1,10 @@
 # Tasks: refactor-condition-nodes
 
 ## 1. Condition nodes
-- [ ] 1.1 Change `Condition` to an interface with `Eval(ctx *AuctionContext) bool`
-- [ ] 1.2 Add one node type per existing key (design D2) and make each `New*Condition` constructor return it; `NewAllCondition` and `NewMultiCondition` return `allCondition` and `anyCondition`
-- [ ] 1.3 `Convention.NextBid` calls `Eval`
-- [ ] 1.4 Existing condition, convention and auction tests pass unchanged
+- [x] 1.1 Change `Condition` to an interface with `Eval(ctx *AuctionContext) bool`
+- [x] 1.2 Add one node type per existing key (design D2) and make each `New*Condition` constructor return it; `NewAllCondition` and `NewMultiCondition` return `allCondition` and `anyCondition`
+- [x] 1.3 `Convention.NextBid` calls `Eval`
+- [x] 1.4 Existing condition, convention and auction tests pass unchanged
 
 ## 2. Parsing conditions key by key
 - [ ] 2.1 Add `parseCondition(*yaml.Node)`: a sequence or a mapping becomes the conjunction of its items or keys (design D1); a mapping with one key returns that key's condition

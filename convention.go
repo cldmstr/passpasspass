@@ -65,7 +65,7 @@ func NewConvention(bid *Bid, conditions ...Condition) *Convention {
 // NextBid reports whether every condition passes in ctx and, if so, returns the bid.
 func (c *Convention) NextBid(ctx *AuctionContext) (bool, *Bid) {
 	for _, cond := range c.conditions {
-		if !cond(ctx) {
+		if !cond.Eval(ctx) {
 			return false, Pass
 		}
 	}
