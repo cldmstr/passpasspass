@@ -32,15 +32,17 @@ func parseCondition(v *yaml.Node) (Condition, error)
 ```
 
 - **Sequence**: every item is parsed with `parseCondition`; the result is the conjunction.
+  A list with one item returns that item's condition directly.
 - **Mapping**: every key/value pair is parsed by the parser registered for the key, in file
   order; the result is the conjunction. A mapping with one key returns that key's condition
-  directly.
+  directly. A key that appears twice is a load error.
 - **Anything else**, an empty sequence or an empty mapping: load error.
 
 Each parser decodes its value with `v.Decode(&target)` into the shape its key needs (`[]int`,
 `map[string][]int`, `bool`, `string`, or a nested condition). yaml.v3 reports type mismatches
-itself, keeps keys in file order, rejects duplicate keys, and gives a line number for every key and
-value. `map[string]any` was rejected: it loses order and line numbers, and needs a type assertion
+itself, keeps keys in file order, and gives a line number for every key and value. It rejects
+duplicate keys only when decoding into a Go map or struct, so `parseCondition` and the
+`suit_length` parser, which walk mapping nodes themselves, reject them. `map[string]any` was rejected: it loses order and line numbers, and needs a type assertion
 per level instead of one `Decode`.
 
 `conditionNode`, its yaml tags, `buildCondition` and the hand-written `UnmarshalYAML` on

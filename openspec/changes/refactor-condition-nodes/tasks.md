@@ -12,10 +12,10 @@
 - [x] 2.3 All built-in data loads and bids exactly as before
 
 ## 3. Parsing conditions key by key
-- [ ] 3.1 Add `parseCondition(*yaml.Node)`: a sequence or a mapping becomes the conjunction of its items or keys (design D1); a mapping with one key returns that key's condition
-- [ ] 3.2 Add the parser table, filled in `init`, with a parser for every existing key and the shared helpers `parseRange`, `parseFlag` and `parseBid` (design D2)
-- [ ] 3.3 Unknown condition keys, empty mappings, empty lists, and values that are neither a mapping nor a list are load errors
-- [ ] 3.4 Tests: two keys in one mapping both apply; keys in a list and in a mapping give the same result; nested `all` and `any` with several keys per item; unknown key; empty `conditions`, `all: []` and `any: []`
+- [x] 3.1 Add `parseCondition(*yaml.Node)`: a sequence or a mapping becomes the conjunction of its items or keys (design D1); a mapping with one key returns that key's condition
+- [x] 3.2 Add the parser table, filled in `init`, with a parser for every existing key and the shared helpers `parseRange`, `parseFlag` and `parseBid` (design D2)
+- [x] 3.3 Unknown condition keys, empty mappings, empty lists, and values that are neither a mapping nor a list are load errors
+- [x] 3.4 Tests: two keys in one mapping both apply; keys in a list and in a mapping give the same result; nested `all` and `any` with several keys per item; unknown key; empty `conditions`, `all: []` and `any: []`
 
 ## 4. Validation
 - [ ] 4.1 Ranges: exactly two integers, `min ≤ max`, within the limits in design D2
