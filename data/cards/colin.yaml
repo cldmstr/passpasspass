@@ -1,11 +1,13 @@
 name: Two-over-one Colin Special
 includes:
+  - jacoby_transfer
   - multi_two_diamond
   - strong_two_clubs
   - strong_notrump
   - tartan
   - five_card_major
-  - 1nt_responses
+  - baron
+  - colin_stayman
 conventions:
   - bid: 2NT
     conditions:

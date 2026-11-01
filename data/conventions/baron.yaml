@@ -1,0 +1,8 @@
+name: baron
+conventions:
+  # Baron: 8+ HCP, no 5-card major; asks opener to bid 4-card suits upward
+  - bid: 2S
+    conditions:
+      all:
+        - partner_bid: "1NT"
+        - hcp: [8, 40]

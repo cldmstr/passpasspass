@@ -1,0 +1,162 @@
+# Design: Partner-aware responses
+
+## Context
+`Auction.Run` already keeps a `[4]HandRange` and narrows it after every call with
+`inferAndUpdate`, and `AuctionContext` already exposes `Partner`, `LHO`, `RHO` and a
+`PartnershipEval`. This change rebuilds that pipeline so that it can carry responses and rebids:
+calls are read in context, bids with several meanings stay as separate alternatives, and each
+player sees partner through their own cards.
+
+```
+Auction.Run
+  └─ AuctionState          call history + what each player has shown (from the calls alone)
+       ├─ History          []BidAction with per-player queries
+       ├─ Interpreter      (sheet, history before the call, caller, call) → HandModel
+       └─ [4]HandModel     shown models, indexed by Direction
+  └─ Perspective           one player's view: own hand + partner's model tightened by own cards
+       └─ AuctionContext → conditions → ConventionSheet.Bid
+```
+
+## Goals / Non-Goals
+
+**Goals**
+- Read every call in the auction context in which it was made.
+- Keep a bid with several meanings (Multi) as alternatives, and narrow them as the auction goes on.
+- Let responses and opener's rebids depend on partner's shown model and the player's own hand.
+- Ship standard responses and rebids for every built-in opening, and splinters as the first
+  response file shared by several openings.
+
+**Non-Goals**
+- Using opponents' calls to choose a response or rebid. Opponents' models are still tracked and
+  exposed unchanged, but no built-in convention uses them.
+- Overcalls and contested auctions.
+- Inference from calls that were *not* made: a Pass, or earlier conventions in the sheet that did
+  not apply.
+- Responder's second call and later rounds; opener's rebids after a 2/1 game-forcing response
+  or after responses to a minor-suit opening; responses to Tartan or to the Colin `2NT`.
+- Simulating possible hands by sampling. Ranges are cheap, behave predictably, and can be shown to
+  a learner directly.
+
+## Decisions
+
+### D1: `History` as a named slice type
+`type History []BidAction` with `BidsBy(d)`, `LastBidBy(d)`, `Opening()` and `Contract()`.
+`AuctionContext.History` changes to this type and `lastBidByDir` is folded into `LastBidBy`. The
+auction as it stood when call *i* was made is `h[:i]`.
+
+### D2: `auction` lists every call from the opening (user decision)
+`auction: [1H, Pass, 2H, Pass]` matches when the calls from the opening bid onwards, by all four
+seats, are exactly the listed calls. Passes before the opening are dropped, so the same rule works
+in every seat. An empty list matches before anyone has opened. Listing opponents' calls now means
+overcalls can be added later without changing the syntax: `[1H, 1S]` will describe a contested
+auction.
+
+`partner_bid`, `rho_bid` and `lho_bid` stay for compatibility; the built-in data moves to
+`auction`.
+
+### D3: `HandModel` holds a list of alternatives
+```go
+type HandModel struct{ Cases []HandRange }
+```
+- `Intersect` keeps every non-empty pairwise intersection; an empty model means "impossible".
+- `Tighten` applies the 13-card rule to each alternative: no suit's maximum exceeds 13 minus the
+  sum of the other suits' minimums, and no suit's minimum is below 13 minus the sum of the other
+  suits' maximums. It also caps HCP at 37.
+- `Bounds` returns the smallest single range covering all alternatives, for display and for
+  simple checks.
+
+Ranges stay boxes. Shape facts that a box cannot express, such as "at most one doubleton" or the
+Rule of 20, are approximated or dropped: `balanced` becomes 2–5 in every suit; `rule_of_20`
+contributes nothing.
+
+### D4: Calls are read by compiling condition trees with three-valued guards
+At load time each convention keeps its `conditionNode`. The interpreter turns that tree into a
+`HandModel` for one call in one auction:
+
+| Node | Result |
+|------|--------|
+| `hcp`, `suit_length`, `balanced` | one alternative with those bounds |
+| `rule_of_20` | one unconstrained alternative |
+| auction-only (`auction`, `no_prior_bids`, `*_bid`) | evaluated on the history before the call: true → one unconstrained alternative, false → empty |
+| partner-model (`partner_hcp`, `partner_suit_length`, `lho_min_hcp`, `rho_min_hcp`) | evaluated on the shown models; true → unconstrained, false → empty. Without the caller's own cards these can only be checked approximately, so an inconclusive result counts as true |
+| partnership (`partnership_hcp`, `fit`, `*_fit`) | translated into bounds on the caller's own hand using partner's shown model, e.g. `partnership_hcp: [25, 40]` opposite 15–17 gives the caller 10+ HCP |
+| `all` | intersection of the children |
+| `any` | concatenation of the children's alternatives |
+
+The meaning of a call is the union of the models of **every** convention in the caller's sheet
+whose bid equals the call and whose model is not empty. Taking every candidate, not just the
+first, avoids claiming more than is known when an earlier convention's guards held but its hand
+conditions might not have.
+
+`extractBounds`, `applyBounds`, `intersectRanges` and `inferAndUpdate` are replaced. The
+interpreter is an interface injected into `AuctionState`, and takes the caller's sheet as an
+argument so that partnerships can later play different cards.
+
+### D5: Every condition on partner's model must hold for all alternatives (user decision)
+`partner_hcp`, `partner_suit_length`, `fit`, `partnership_hcp` and the `*_fit` keys pass only
+when the test holds for every remaining alternative. For a range-containment test this is the
+same as testing `Bounds()`, which keeps the implementation simple. `major_fit` and `minor_fit`
+pick the better suit per alternative. This errs on the side of not assuming a fit: opposite Multi,
+neither major is a known fit, which is why the pass-or-correct responses exist.
+
+### D6: `AuctionState` and `Perspective` are injected
+`NewAuctionState(interp Interpreter, sheets [4]*ConventionSheet, shown [4]HandModel)` and
+`NewAuction(dealer, hands, state)`. `Table.RunAuction`, a method rather than a constructor,
+builds the per-deal state, which follows the AGENTS.md dependency-injection rule.
+
+`Perspective` combines the player's own hand with partner's shown model, tightened by the player's
+cards: partner holds at most `13 − own length` in each suit and at most `40 − own HCP` points.
+LHO and RHO models are passed through untightened.
+
+### D7: The sheet only returns legal bids
+`ConventionSheet.Bid` skips a convention whose bid is neither Pass nor higher than
+`ctx.History.Contract()`, and tries the next. The replace-with-Pass step in `Run` is removed. A
+convention may bid `Pass` explicitly, which stops a weaker rule further down the sheet from
+firing (e.g. opener passing `2♥️` after Multi with weak hearts).
+
+### D8: Where responses live (user decision)
+- Standard responses and opener's rebids go into the file that holds the opening.
+- A response that applies to several openings gets its own file, included **before** the opening
+  files it extends so that first-match picks it over the more general responses. `splinters.yaml`
+  is the first such file.
+- The 1NT responses are split across `jacoby_transfer`, `multi_two_diamond` (`3NT`, the `2NT`
+  weakness transfer and the `3♣️` transfer), `baron` and `colin_stayman`. Both cards include
+  `jacoby_transfer`. The Colin card includes `baron` and `colin_stayman` before `strong_notrump`,
+  so Colin's scheme wins and the standard responses in `strong_notrump` only catch what it leaves
+  over.
+
+Every response and rebid is guarded by an `auction` pattern, so responses never collide with
+openings (guarded by `auction: []` or `no_prior_bids`) whatever the include order.
+
+## Risks / Trade-offs
+- **Alternatives multiply**: `all` over several `any` nodes forms a cross product. Mitigation:
+  drop empty intersections straight away, and fail loading above a fixed cap (e.g. 64
+  alternatives per convention).
+- **Approximate public evaluation** (D4): conditions on partner's model are checked without the
+  caller's cards, so the interpreter may consider a convention the caller could not actually have
+  used. This only widens the shown model and never makes it wrong.
+- **Box approximation**: a "balanced" alternative still allows 5-4-2-2 hands. This is acceptable
+  for range-based training feedback.
+- **Ranges are a judgement call**: the response and rebid ranges below are standard 2/1 values
+  but debatable. They live only in YAML and in the `standard-conventions` spec, so tuning them
+  needs no code change.
+- **Gaps until the next change**: auctions can stop early where no rebid is defined (e.g. opener
+  passes a 2/1 response). This is listed under Non-Goals and covered by a follow-up change.
+
+## Migration Plan
+1. Phases 1–5 in `tasks.md` are refactors plus new primitives; existing round-trip tests must pass
+   unchanged after each phase.
+2. Phase 7 moves the 1NT response files to `auction` patterns and reorders the Colin card. Existing Colin
+   1NT response tests switch to full auction histories (`[1NT, Pass]`) instead of a lone partner
+   call.
+3. Phases 7–8 add data and tests only.
+
+## Open Questions
+- The Two Over One card includes `multi_two_diamond`, so it inherits the Colin-style `2NT`
+  weakness transfer, which comes before the standard `2NT` invitation in `strong_notrump`. With
+  6–9 HCP and 6+ spades responder bids `2NT` as a transfer; with 8–9 HCP and no long spades the
+  same bid is an invitation. The interpreter will read it as either. Should the 1NT responses in
+  `multi_two_diamond` move to a Colin-only file?
+- Splinter range: 12–15 HCP is proposed. Some partnerships use 10–13 or 13–16.
+- Opener's 18–19 point unbalanced hands have no opening on either card (one-level openings stop
+  at 17, `2♣️` starts at 20). This is out of scope here but affects rebid ranges later.

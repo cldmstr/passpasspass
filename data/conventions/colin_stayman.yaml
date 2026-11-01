@@ -1,0 +1,12 @@
+name: colin_stayman
+conventions:
+  # Stayman: 4+ in at least one major; fires for weaker hands (< 8 HCP) not handled above
+  - bid: 2C
+    conditions:
+      all:
+        - partner_bid: "1NT"
+        - any:
+            - suit_length:
+                hearts: [4, 13]
+            - suit_length:
+                spades: [4, 13]

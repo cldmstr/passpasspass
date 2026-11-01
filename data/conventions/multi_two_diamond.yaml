@@ -17,3 +17,35 @@ conventions:
                 - suit_length:
                     spades: [6, 13]
             - hcp: [27, 40]
+
+  # Natural game: 10-14 HCP, balanced, no 4-card major — direct 3NT
+  - bid: 3NT
+    conditions:
+      all:
+        - partner_bid: "1NT"
+        - hcp: [10, 14]
+        - balanced: true
+        - suit_length:
+            hearts: [0, 3]
+        - suit_length:
+            spades: [0, 3]
+
+  # Weakness transfer to spades: 6-9 HCP, 6+ spades (play 3S)
+  # Listed before Stayman so 6-card spade suits don't trigger Stayman
+  - bid: 2NT
+    conditions:
+      all:
+        - partner_bid: "1NT"
+        - hcp: [6, 9]
+        - suit_length:
+            spades: [6, 13]
+
+  # Transfer to diamonds: 6-9 HCP, 6+ diamonds (play 3D)
+  # Listed before Stayman so 6-card diamond suits don't block
+  - bid: 3C
+    conditions:
+      all:
+        - partner_bid: "1NT"
+        - hcp: [6, 9]
+        - suit_length:
+            diamonds: [6, 13]
