@@ -69,7 +69,8 @@ HCP limits go to 40, the points in the deck, rather than 37, because the built-i
 
 `all` and `any` call `parseCondition`, which reads the table, so a package-level map literal would
 form an initialisation cycle. The table is filled in `init`. Shared helpers keep each parser to a
-few lines: `parseRange(v, lo, hi)`, `parseFlag(v)` and `parseBid(v)`.
+few lines: `parseRange(v, ceiling)`, `parseFlag(v)` and `parseBid(v)`. Every range counts points
+or cards, so its lower limit is always 0.
 
 ### D3: `Condition` is an interface; each key has a node type
 ```go

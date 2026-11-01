@@ -12,6 +12,7 @@ const (
 	DistributionLength int = 4
 	HandSize           int = 13
 	MaxHandHCP         int = 37
+	MaxDeckHCP         int = 40
 )
 
 // Distribution holds a hand's suit lengths in suit order: clubs, diamonds, hearts, spades.

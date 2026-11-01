@@ -18,11 +18,11 @@
 - [x] 3.4 Tests: two keys in one mapping both apply; keys in a list and in a mapping give the same result; nested `all` and `any` with several keys per item; unknown key; empty `conditions`, `all: []` and `any: []`
 
 ## 4. Validation
-- [ ] 4.1 Ranges: exactly two integers, `min ≤ max`, within the limits in design D2
-- [ ] 4.2 `suit_length`: only clubs, diamonds, hearts and spades in any accepted spelling; `NT` is a load error
-- [ ] 4.3 Flag keys (`balanced`, `rule_of_20`, `no_prior_bids`) accept only `true` (design D4)
-- [ ] 4.4 `partner_bid` parses its bid at load time
-- [ ] 4.5 Tests, one per case in the proposal table and per limit: `hcp: [5]`, `hcp: [12, 10]`, `hcp: [0, 41]`, `suit_length: {NT: [1, 2]}`, `suit_length: {hearts: [0, 14]}`, `balanced: false`, `balanced: yes please`, `partner_bid: "1N"`; boundary values that still load (`hcp: [0, 40]`, `suit_length: {spades: [0, 13]}`)
+- [x] 4.1 Ranges: exactly two integers, `min ≤ max`, within the limits in design D2
+- [x] 4.2 `suit_length`: only clubs, diamonds, hearts and spades in any accepted spelling; `NT` is a load error
+- [x] 4.3 Flag keys (`balanced`, `rule_of_20`, `no_prior_bids`) accept only `true` (design D4)
+- [x] 4.4 `partner_bid` parses its bid at load time
+- [x] 4.5 Tests, one per case in the proposal table and per limit: `hcp: [5]`, `hcp: [12, 10]`, `hcp: [0, 41]`, `suit_length: {NT: [1, 2]}`, `suit_length: {hearts: [0, 14]}`, `balanced: false`, `balanced: yes please`, `partner_bid: "1N"`; boundary values that still load (`hcp: [0, 40]`, `suit_length: {spades: [0, 13]}`)
 
 ## 5. Strict files and error messages
 - [ ] 5.1 Decode card and sub-convention files with unknown keys rejected; a convention entry needs `bid` and `conditions`

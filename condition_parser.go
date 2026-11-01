@@ -86,22 +86,33 @@ func conjunction(conditions []Condition) Condition {
 	return NewAllCondition(conditions...)
 }
 
-// parseRange decodes a range value `[min, max]`.
-func parseRange(v *yaml.Node) (lo, hi int, err error) {
+// parseRange decodes a range value `[min, max]` with 0 ≤ min ≤ max ≤ ceiling. Every range counts
+// points or cards, so none goes below 0.
+func parseRange(v *yaml.Node, ceiling int) (lo, hi int, err error) {
 	var r []int
 	if err := v.Decode(&r); err != nil {
 		return 0, 0, err
 	}
 	if len(r) != 2 {
-		return 0, 0, errors.New("must have exactly 2 values [min, max]")
+		return 0, 0, fmt.Errorf("must be [min, max], got %d values", len(r))
 	}
-	return r[0], r[1], nil
+	lo, hi = r[0], r[1]
+	if lo > hi {
+		return 0, 0, fmt.Errorf("min %d is greater than max %d", lo, hi)
+	}
+	if lo < 0 || hi > ceiling {
+		return 0, 0, fmt.Errorf("[%d, %d] is outside 0 to %d", lo, hi, ceiling)
+	}
+	return lo, hi, nil
 }
 
-// parseFlag decodes a flag value, a boolean.
+// parseFlag accepts only the YAML boolean `true`.
 func parseFlag(v *yaml.Node) error {
 	var b bool
-	return v.Decode(&b)
+	if v.Kind != yaml.ScalarNode || v.ShortTag() != "!!bool" || v.Decode(&b) != nil || !b {
+		return errors.New("only true is accepted")
+	}
+	return nil
 }
 
 // parseBid decodes a call such as "1NT" or "Pass".
@@ -134,7 +145,7 @@ func parseConditionList(v *yaml.Node) ([]Condition, error) {
 
 // parseHCP parses `hcp: [min, max]`.
 func parseHCP(v *yaml.Node) (Condition, error) {
-	lo, hi, err := parseRange(v)
+	lo, hi, err := parseRange(v, deckHCP)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +154,7 @@ func parseHCP(v *yaml.Node) (Condition, error) {
 
 // parsePartnershipHCP parses `partnership_hcp: [min, max]`.
 func parsePartnershipHCP(v *yaml.Node) (Condition, error) {
-	lo, hi, err := parseRange(v)
+	lo, hi, err := parseRange(v, deckHCP)
 	if err != nil {
 		return nil, err
 	}
@@ -155,19 +166,19 @@ func parseSuitLength(v *yaml.Node) (Condition, error) {
 	if v.Kind != yaml.MappingNode || len(v.Content) == 0 {
 		return nil, errors.New("must be a mapping of suits to [min, max]")
 	}
-	r := DistributionRange{{0, 13}, {0, 13}, {0, 13}, {0, 13}}
+	r := DistributionRange{{0, HandSize}, {0, HandSize}, {0, HandSize}, {0, HandSize}}
 	seen := make(map[Suit]bool, len(r))
 	for i := 0; i+1 < len(v.Content); i += 2 {
 		name := v.Content[i].Value
 		s, err := NewSuitFromString(name)
 		if err != nil || s == NoTrump {
-			return nil, fmt.Errorf("unknown suit %q", name)
+			return nil, fmt.Errorf("%q is not a suit (clubs, diamonds, hearts or spades)", name)
 		}
 		if seen[s] {
 			return nil, fmt.Errorf("suit %q appears more than once", name)
 		}
 		seen[s] = true
-		lo, hi, err := parseRange(v.Content[i+1])
+		lo, hi, err := parseRange(v.Content[i+1], HandSize)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", name, err)
 		}
