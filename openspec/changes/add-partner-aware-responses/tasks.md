@@ -23,7 +23,7 @@
 ## 5. Reading calls in context
 - [ ] 5.1 Add `Shown` to the `Condition` interface and implement it on every node type: the `HandModel` a node allows for a given history prefix and the facts before the call, following the table in design D4 (three-valued guards, `any` → alternatives, `all` → intersection)
 - [ ] 5.2 `balanced` contributes 2–5 cards in every suit
-- [ ] 5.3 Translate `partnership_hcp`, `fit` and the `*_fit` keys into bounds on the caller's own hand, using partner's shown model at the time of the call
+- [ ] 5.3 Translate `partnership_hcp` and `fit` into bounds on the caller's own hand, using partner's shown model at the time of the call
 - [ ] 5.4 Implement `Shown` on the `not` node as in design D9: flip auction-only guards; complement `hcp` and `suit_length` boxes; push through `all` and `any` with De Morgan's laws; approximated nodes give one unconstrained alternative
 - [ ] 5.5 Add the `Interpreter` interface and the default implementation: the union over every convention whose bid equals the call and whose model is not empty
 - [ ] 5.6 Cap alternatives per convention (design risk 1, including alternatives added by `not`) and fail loading above the cap
@@ -47,13 +47,13 @@
 
 ## 8. Conditions on partner's model and legal selection
 - [ ] 8.1 Add `partner_hcp: [min, max]`, `partner_suit_length: {suit: [min, max]}` and `fit: {suit: [min, max]}` (conditions and parsers; ranges follow the range-value limits)
-- [ ] 8.2 Apply the all-alternatives rule (design D5) to the new keys and to `partnership_hcp`, `major_fit`, `minor_fit`, `heart_fit` and `spade_fit`
+- [ ] 8.2 Apply the all-alternatives rule (design D5) to the new keys and to `partnership_hcp`
 - [ ] 8.3 `ConventionSheet.Bid` skips conventions whose bid is neither Pass nor higher than the current contract; remove the replace-with-Pass step from `Run`
-- [ ] 8.4 Tests: each new key at its boundaries; opposite a Multi `2♦️` neither `fit: {hearts: [8, 13]}` nor `fit: {spades: [8, 13]}` holds; an illegal first match falls through to the next convention; an explicit `Pass` convention stops the search
+- [ ] 8.4 Tests: each new key at its boundaries; `fit: {hearts: [8, 14]}` and `fit: {spades: [7, 13]}` fail to load; opposite a Multi `2♦️` neither `fit: {hearts: [8, 13]}` nor `fit: {spades: [8, 13]}` holds; an illegal first match falls through to the next convention; an explicit `Pass` convention stops the search
 
 ## 9. Migrating existing data
 - [ ] 9.1 Replace `no_prior_bids: true` with `auction: [Pass*]` in all opening conventions, including the Colin card's `2NT`
-- [ ] 9.2 Replace `partner_bid: "1NT"` with `auction: [Pass*, 1NT, Pass]` in `jacoby_transfer.yaml`, `multi_two_diamond.yaml`, `baron.yaml` and `colin_stayman.yaml`
+- [ ] 9.2 Replace `partner_bid: "1NT"` with `auction: [Pass*, 1NT, Pass]` in `jacoby_transfer.yaml`, `multi_two_diamond.yaml`, `baron.yaml` and `colin_stayman.yaml`; then remove the `partner_bid` condition, its parser and its tests
 - [ ] 9.3 Add opener's replies: transfer completion in `jacoby_transfer.yaml`; `3♠️` after `2NT` and `3♦️` after `3♣️` in `multi_two_diamond.yaml`; Baron replies after `2♠️` in `baron.yaml`
 - [ ] 9.4 Declare `forcing: one_round` on the strong `2♣️` and Multi `2♦️` openings and on the 1NT responses that ask opener to bid (transfers, the `2NT` and `3♣️` transfers, Baron, Stayman); declare `agreed: notrump` on the Multi file's `3NT` response
 - [ ] 9.5 Reorder the Colin card includes: `jacoby_transfer`, `multi_two_diamond`, `strong_two_clubs`, `baron`, `colin_stayman`, `strong_notrump`, `tartan`, `five_card_major`; add `jacoby_transfer` first in the Two Over One card

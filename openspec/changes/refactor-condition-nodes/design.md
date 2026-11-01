@@ -59,14 +59,8 @@ var conditionParsers map[string]conditionParser // filled in init, see below
 | `suit_length` | `{suit: [min, max], ...}` | 0–13; clubs, diamonds, hearts or spades only |
 | `balanced`, `rule_of_20`, `no_prior_bids` | `true` | only `true` |
 | `all`, `any` | non-empty list of conditions | |
-| `partner_bid`, `rho_bid`, `lho_bid` | a call, e.g. `"1NT"` or `Pass` | must parse as a bid |
+| `partner_bid` | a call, e.g. `"1NT"` or `Pass` | must parse as a bid |
 | `partnership_hcp` | `[min, max]` | 0–40 |
-| `heart_fit`, `spade_fit`, `major_fit`, `minor_fit` | `[min, max]` | 8–13 |
-| `lho_min_hcp`, `rho_min_hcp` | `n` | 0–40 |
-
-Fit limits are 8–13: a suit has 13 cards, so a partnership never holds more, and fewer than 8
-combined cards is not a fit. Conditions about the absence of a fit are written by negating a fit
-once `not` exists (`add-partner-aware-responses`).
 
 HCP limits go to 40, the points in the deck, rather than 37, because the built-in data uses
 `[8, 40]` and `[27, 40]` to mean "no upper limit".
@@ -116,7 +110,26 @@ switches on node types (`hcpCondition`, `suitLengthCondition`, `allCondition`, `
 instead of `conditionNode` fields, with the same results as today. `add-partner-aware-responses`
 removes it in its task 5.7.
 
+### D7: Unused keys are removed first
+`rho_bid`, `lho_bid`, `lho_min_hcp`, `rho_min_hcp`, `heart_fit`, `spade_fit`, `major_fit` and
+`minor_fit` are used by no convention file; only their own unit tests call them. They are removed,
+together with `PartnershipEval.BestMajorFit` and `BestMinorFit`, before the parser table exists,
+so no parser, validation rule or inference rule is written for them.
+
+| Removed | Replacement |
+|---------|-------------|
+| `rho_bid`, `lho_bid` | `auction` patterns (`add-partner-aware-responses`), which can name any seat's call |
+| `heart_fit`, `spade_fit` | `fit: {<suit>: [min, max]}` (`add-partner-aware-responses`), for any suit |
+| `major_fit`, `minor_fit` | `any` of two `fit` conditions |
+| `lho_min_hcp`, `rho_min_hcp` | none; opponents' calls are out of scope until overcalls are planned |
+
+`partner_bid` and `no_prior_bids` stay: the built-in data uses them until
+`add-partner-aware-responses` moves it to `auction` patterns. `partnership_hcp` stays because that
+change uses it. `PartnershipEval.SuitFit` stays for the planned `fit`.
+
 ## Risks / Trade-offs
+- **Custom cards using a removed key stop loading**: the error names the key and its line. No
+  built-in file is affected.
 - **No single struct lists every key with its type**: the parser table takes that role, and each
   parser's doc comment states the value's shape.
 - **Stricter loading may reject custom cards that load today**: every rejected case is one that is

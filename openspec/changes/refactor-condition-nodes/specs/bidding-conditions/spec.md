@@ -5,12 +5,9 @@ Every condition whose value is a range SHALL take exactly two integers `[min, ma
 `min ≤ max`, both within the limits of what the condition measures:
 
 - HCP of one hand or of a partnership (`hcp`, `partnership_hcp`): 0–40;
-- length of one suit in one hand (`suit_length`): 0–13;
-- a fit, the combined length of one suit in a partnership (`heart_fit`, `spade_fit`,
-  `major_fit`, `minor_fit`): 8–13. A suit has 13 cards, and a fit is at least 8 of them.
+- length of one suit in one hand (`suit_length`): 0–13.
 
-A single threshold (`lho_min_hcp`, `rho_min_hcp`) SHALL be an integer from 0 to 40. Any other
-value SHALL be a load error.
+Any other value SHALL be a load error.
 
 #### Scenario: One value
 - **WHEN** a condition is `hcp: [5]`
@@ -22,14 +19,6 @@ value SHALL be a load error.
 
 #### Scenario: Out of limits
 - **WHEN** a condition is `suit_length: {hearts: [0, 14]}`
-- **THEN** loading fails
-
-#### Scenario: Fit beyond the suit
-- **WHEN** a condition is `heart_fit: [8, 14]`
-- **THEN** loading fails, because the partnership cannot hold more than 13 hearts
-
-#### Scenario: Fewer than eight cards is not a fit
-- **WHEN** a condition is `spade_fit: [7, 13]`
 - **THEN** loading fails
 
 #### Scenario: No upper limit
@@ -60,21 +49,9 @@ SHALL be a load error. Ranges SHALL follow the range values requirement.
 - **WHEN** the condition is `suit_length: {NT: [1, 2]}`
 - **THEN** loading fails
 
-### Requirement: Suit fit conditions
-`heart_fit` and `spade_fit` SHALL pass when the combined card range in that suit (bidder's length
-plus partner's inferred minimum and maximum length) lies entirely within `[min, max]`.
-`major_fit` SHALL apply the same test to the better major, and `minor_fit` to the better minor,
-where the better suit is the one with the higher combined maximum (spades or diamonds on a tie).
-Ranges SHALL follow the range values requirement for a fit (8–13).
-
-#### Scenario: Known eight-card heart fit
-- **WHEN** the bidder holds 3 hearts, partner is inferred at 5–10 hearts, and the condition is `heart_fit: [8, 13]`
-- **THEN** the condition passes
-
 ### Requirement: Seat bid conditions
-`partner_bid`, `rho_bid` and `lho_bid` SHALL each pass when the most recent call by the bidder's
-partner, right-hand opponent or left-hand opponent respectively equals the given bid. A seat that
-has not yet called SHALL count as having passed. The given bid SHALL be parsed when the file is
+`partner_bid` SHALL pass when the most recent call by the bidder's partner equals the given bid.
+A partner who has not yet called SHALL count as having passed. The given bid SHALL be parsed when the file is
 loaded, and an invalid bid SHALL be a load error.
 
 #### Scenario: Partner opened 1NT
@@ -84,3 +61,15 @@ loaded, and an invalid bid SHALL be a load error.
 #### Scenario: Invalid bid
 - **WHEN** the condition is `partner_bid: "1N"`
 - **THEN** loading fails with an error naming `1N`
+
+## REMOVED Requirements
+
+### Requirement: Suit fit conditions
+**Reason**: `heart_fit`, `spade_fit`, `major_fit` and `minor_fit` are used by no convention file.
+**Migration**: none needed for the built-in data. `add-partner-aware-responses` adds
+`fit: {<suit>: [min, max]}` for any suit; a major or minor fit is `any` of two `fit` conditions.
+
+### Requirement: Opponent strength conditions
+**Reason**: `lho_min_hcp` and `rho_min_hcp` are used by no convention file, and conventions that
+depend on opponents' calls are out of scope until overcalls are planned.
+**Migration**: none needed for the built-in data.

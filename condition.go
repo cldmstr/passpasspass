@@ -131,36 +131,20 @@ func (noPriorBidsCondition) Eval(ctx *AuctionContext) bool {
 	return !opened
 }
 
-// seatBidCondition passes when the last call by the seat that seat(bidder) returns equals bid.
-// A nil bid never matches.
-type seatBidCondition struct {
-	seat func(Direction) Direction
-	bid  *Bid
-}
-
-func (c seatBidCondition) Eval(ctx *AuctionContext) bool {
-	if c.bid == nil {
-		return false
-	}
-	return ctx.History.LastBidBy(c.seat(ctx.Position)).Value() == c.bid.Value()
-}
+// partnerBidCondition passes when partner's last call equals bid. A nil bid never matches.
+type partnerBidCondition struct{ bid *Bid }
 
 // NewPartnerBidCondition returns true when partner's last bid matches bidStr.
 func NewPartnerBidCondition(bidStr string) Condition {
 	target, _ := NewBidFromString(bidStr)
-	return seatBidCondition{seat: partnerOf, bid: target}
+	return partnerBidCondition{bid: target}
 }
 
-// NewRHOBidCondition returns true when RHO's last bid matches bidStr.
-func NewRHOBidCondition(bidStr string) Condition {
-	target, _ := NewBidFromString(bidStr)
-	return seatBidCondition{seat: rhoOf, bid: target}
-}
-
-// NewLHOBidCondition returns true when LHO's last bid matches bidStr.
-func NewLHOBidCondition(bidStr string) Condition {
-	target, _ := NewBidFromString(bidStr)
-	return seatBidCondition{seat: lhoOf, bid: target}
+func (c partnerBidCondition) Eval(ctx *AuctionContext) bool {
+	if c.bid == nil {
+		return false
+	}
+	return ctx.History.LastBidBy(partnerOf(ctx.Position)).Value() == c.bid.Value()
 }
 
 // partnershipHCPCondition passes when the combined HCP range lies within [lo, hi].
@@ -173,79 +157,6 @@ func NewPartnershipHCPCondition(lo, hi int) Condition {
 
 func (c partnershipHCPCondition) Eval(ctx *AuctionContext) bool {
 	return ctx.Partnership.MinCombinedHCP >= c.lo && ctx.Partnership.MaxCombinedHCP <= c.hi
-}
-
-// suitFitCondition passes when the combined holding in suit lies within [lo, hi] cards.
-type suitFitCondition struct {
-	suit   Suit
-	lo, hi int
-}
-
-// NewHeartFitCondition returns true when the combined heart holding is within [lo, hi] cards.
-func NewHeartFitCondition(lo, hi int) Condition {
-	return suitFitCondition{suit: Hearts, lo: lo, hi: hi}
-}
-
-// NewSpadeFitCondition returns true when the combined spade holding is within [lo, hi] cards.
-func NewSpadeFitCondition(lo, hi int) Condition {
-	return suitFitCondition{suit: Spades, lo: lo, hi: hi}
-}
-
-func (c suitFitCondition) Eval(ctx *AuctionContext) bool {
-	return within(ctx.Partnership.SuitFit[c.suit], c.lo, c.hi)
-}
-
-// majorFitCondition passes when the better major fit lies within [lo, hi] cards.
-type majorFitCondition struct{ lo, hi int }
-
-// NewMajorFitCondition returns true when the best major suit fit is within [lo, hi] cards.
-func NewMajorFitCondition(lo, hi int) Condition {
-	return majorFitCondition{lo: lo, hi: hi}
-}
-
-func (c majorFitCondition) Eval(ctx *AuctionContext) bool {
-	return within(ctx.Partnership.BestMajorFit(), c.lo, c.hi)
-}
-
-// minorFitCondition passes when the better minor fit lies within [lo, hi] cards.
-type minorFitCondition struct{ lo, hi int }
-
-// NewMinorFitCondition returns true when the best minor suit fit is within [lo, hi] cards.
-func NewMinorFitCondition(lo, hi int) Condition {
-	return minorFitCondition{lo: lo, hi: hi}
-}
-
-func (c minorFitCondition) Eval(ctx *AuctionContext) bool {
-	return within(ctx.Partnership.BestMinorFit(), c.lo, c.hi)
-}
-
-// opponentMinHCPCondition passes when an opponent's inferred minimum HCP is at least threshold.
-type opponentMinHCPCondition struct {
-	left      bool // LHO when true, RHO otherwise
-	threshold int
-}
-
-// NewLHOMinHCPCondition returns true when LHO's inferred minimum HCP meets the threshold.
-func NewLHOMinHCPCondition(threshold int) Condition {
-	return opponentMinHCPCondition{left: true, threshold: threshold}
-}
-
-// NewRHOMinHCPCondition returns true when RHO's inferred minimum HCP meets the threshold.
-func NewRHOMinHCPCondition(threshold int) Condition {
-	return opponentMinHCPCondition{left: false, threshold: threshold}
-}
-
-func (c opponentMinHCPCondition) Eval(ctx *AuctionContext) bool {
-	opponent := ctx.RHO
-	if c.left {
-		opponent = ctx.LHO
-	}
-	return opponent.MinHCP >= c.threshold
-}
-
-// within reports whether r lies entirely inside [lo, hi].
-func within(r SuitRange, lo, hi int) bool {
-	return r.Min >= lo && r.Max <= hi
 }
 
 func partnerOf(d Direction) Direction { return (d + 2) % 4 }

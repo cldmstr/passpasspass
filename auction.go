@@ -79,24 +79,6 @@ type PartnershipEval struct {
 	SuitFit        [4]SuitRange
 }
 
-// BestMajorFit returns the combined card range for the better major suit fit.
-func (p PartnershipEval) BestMajorFit() SuitRange {
-	h, s := p.SuitFit[Hearts], p.SuitFit[Spades]
-	if s.Max >= h.Max {
-		return s
-	}
-	return h
-}
-
-// BestMinorFit returns the combined card range for the better minor suit fit.
-func (p PartnershipEval) BestMinorFit() SuitRange {
-	c, d := p.SuitFit[Clubs], p.SuitFit[Diamonds]
-	if d.Max >= c.Max {
-		return d
-	}
-	return c
-}
-
 // NewPartnershipEval computes the combined picture from own hand and partner's inferred range.
 func NewPartnershipEval(self *Hand, partner HandRange) PartnershipEval {
 	selfDist := self.Distribution()

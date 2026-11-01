@@ -79,11 +79,8 @@ quoted in every pattern. Any other element must parse as a bid; anything else is
 Seat-independent rules use `Pass*`; rules that only apply to an unpassed hand (game-forcing
 responses) list the two unpassed patterns under `any`.
 
-`partner_bid`, `rho_bid` and `lho_bid` stay for compatibility; the built-in data moves to
-`auction`.
-
-`partner_bid`, `rho_bid` and `lho_bid` stay for compatibility; the built-in data moves to
-`auction`.
+The built-in data moves to `auction`, after which `partner_bid` is used by no file and is removed
+(task 9.2). `rho_bid` and `lho_bid` were already removed by `refactor-condition-nodes`.
 
 ### D3: `HandModel` holds a list of alternatives
 ```go
@@ -109,9 +106,9 @@ auction. Every node type implements it:
 |------|--------|
 | `hcp`, `suit_length`, `balanced` | one alternative with those bounds |
 | `rule_of_20` | one unconstrained alternative |
-| auction-only (`auction`, `no_prior_bids`, `*_bid`, `agreed`, `forced`) | evaluated on the history and facts before the call: true → one unconstrained alternative, false → empty |
-| partner-model (`partner_hcp`, `partner_suit_length`, `lho_min_hcp`, `rho_min_hcp`) | evaluated on the shown models; true → unconstrained, false → empty. Without the caller's own cards these can only be checked approximately, so an inconclusive result counts as true |
-| partnership (`partnership_hcp`, `fit`, `*_fit`) | translated into bounds on the caller's own hand using partner's shown model, e.g. `partnership_hcp: [25, 40]` opposite 15–17 gives the caller 10+ HCP |
+| auction-only (`auction`, `no_prior_bids`, `agreed`, `forced`) | evaluated on the history and facts before the call: true → one unconstrained alternative, false → empty |
+| partner-model (`partner_hcp`, `partner_suit_length`) | evaluated on the shown models; true → unconstrained, false → empty. Without the caller's own cards these can only be checked approximately, so an inconclusive result counts as true |
+| partnership (`partnership_hcp`, `fit`) | translated into bounds on the caller's own hand using partner's shown model, e.g. `partnership_hcp: [25, 40]` opposite 15–17 gives the caller 10+ HCP |
 | `all` | intersection of the children |
 | `any` | concatenation of the children's alternatives |
 | `not` | see D9 |
@@ -126,11 +123,13 @@ interpreter is an interface injected into `AuctionState`, and takes the caller's
 argument so that partnerships can later play different cards.
 
 ### D5: Every condition on partner's model must hold for all alternatives (user decision)
-`partner_hcp`, `partner_suit_length`, `fit`, `partnership_hcp` and the `*_fit` keys pass only
-when the test holds for every remaining alternative. For a range-containment test this is the
-same as testing `Bounds()`, which keeps the implementation simple. `major_fit` and `minor_fit`
-pick the better suit per alternative. This errs on the side of not assuming a fit: opposite Multi,
-neither major is a known fit, which is why the pass-or-correct responses exist.
+`partner_hcp`, `partner_suit_length`, `fit` and `partnership_hcp` pass only when the test holds
+for every remaining alternative. For a range-containment test this is the same as testing
+`Bounds()`, which keeps the implementation simple. This errs on the side of not assuming a fit:
+opposite Multi, neither major is a known fit, which is why the pass-or-correct responses exist.
+
+A `fit` range lies within 8–13: a suit has 13 cards, so a partnership never holds more, and fewer
+than 8 combined cards is not a fit. The absence of a fit is written `not: {fit: ...}`.
 
 ### D6: `AuctionState` and `Perspective` are injected
 `NewAuctionState(interp Interpreter, sheets [4]*ConventionSheet, shown [4]HandModel)` and

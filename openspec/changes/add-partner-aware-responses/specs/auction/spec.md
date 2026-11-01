@@ -73,11 +73,9 @@ convention's model is derived from its conditions:
 
 - `hcp` and `suit_length` set bounds; `balanced` sets 2–5 cards in every suit; `rule_of_20` sets
   nothing.
-- Auction conditions (`auction`, `no_prior_bids`, `partner_bid`, `rho_bid`, `lho_bid`, `agreed`,
-  `forced`) are checked against the auction and the established facts before the call, and a
+- Auction conditions (`auction`, `no_prior_bids`, `agreed`, `forced`) are checked against the auction and the established facts before the call, and a
   convention whose auction conditions fail contributes nothing.
-- Conditions on the partnership (`partnership_hcp`, `fit`, `heart_fit`, `spade_fit`, `major_fit`,
-  `minor_fit`) become bounds on the caller's own hand, given partner's shown model at the time of
+- Conditions on the partnership (`partnership_hcp`, `fit`) become bounds on the caller's own hand, given partner's shown model at the time of
   the call.
 - `all` intersects its children; `any` keeps each child as a separate alternative.
 - `not` flips an auction condition; turns `hcp` and `suit_length` into their complement, with one
@@ -140,8 +138,7 @@ convention-evaluation. When no such convention exists, the seat SHALL pass.
 The partnership evaluation SHALL combine the seat's own hand with partner's model from the seat's
 view: the combined HCP range is own HCP plus the lowest and highest HCP across partner's
 alternatives, and the fit in each suit is own length plus the lowest and highest length across
-partner's alternatives. The better major SHALL be the major with the higher combined maximum
-(spades on a tie), and likewise the better minor (diamonds on a tie).
+partner's alternatives.
 
 #### Scenario: Opposite a 1NT opening
 - **WHEN** the seat holds 10 HCP and 3 hearts, and partner has shown 15–17 HCP and 2–5 hearts

@@ -21,6 +21,10 @@ looser rules. `add-partner-aware-responses` would add a third walk and about eig
 needing a struct field and a case in every `switch`.
 
 ## What Changes
+- **Remove unused keys**: `rho_bid`, `lho_bid`, `lho_min_hcp`, `rho_min_hcp`, `heart_fit`,
+  `spade_fit`, `major_fit` and `minor_fit` are used by no convention file, and
+  `PartnershipEval.BestMajorFit` and `BestMinorFit` exist only for them. They are removed before
+  the parser table is built, so it holds only keys that are used or planned.
 - **Key-by-key parsing**: the loader reads conditions from `yaml.Node`. A mapping is the
   conjunction of all its keys; each key is parsed by the parser registered for it, which decodes
   the value into the shape that key needs. A list is the conjunction of its items. `conditionNode`
@@ -31,19 +35,18 @@ needing a struct field and a case in every `switch`.
 - **Strict loading**: unknown keys in a card, a sub-convention file, a convention entry or a
   condition are load errors. Errors name the file, the convention's bid and the line.
 - **Validation per key**: ranges need exactly two values with `min ≤ max` inside the key's limits;
-  `suit_length` accepts only the four suits; flag keys accept only `true`; seat bids are parsed at
+  `suit_length` accepts only the four suits; flag keys accept only `true`; `partner_bid` is parsed at
   load time; empty conditions are load errors.
 - **Inference on parsed nodes**: `Convention` keeps its parsed conditions instead of the raw YAML
   node, and `applyBounds` reads those until `add-partner-aware-responses` replaces it.
 
 ## Impact
-- Affected specs: `convention-files`, `bidding-conditions`
+- Affected specs: `convention-files`, `bidding-conditions`, `auction` (partnership evaluation)
 - Affected code: `loader.go` (parsing, parser table, strict decoding, errors), `condition.go`
-  (`Condition` interface, node types), `convention.go` (`Convention` holds `Condition`s, no raw
-  node), `auction.go` (`applyBounds` over node types), `.golangci.yml` (drop the `buildCondition`
-  exclusion)
+  (`Condition` interface, node types, removed keys), `convention.go` (`Convention` holds
+  `Condition`s, no raw node), `auction.go` (`applyBounds` over node types, `PartnershipEval`
+  without the better-suit helpers), `.golangci.yml` (drop the `buildCondition` exclusion)
 - No change to the built-in data: every existing file loads and bids as before.
 - Prerequisite for `add-partner-aware-responses`, which adds keys and a second method on the
   nodes to read what a call shows.
-- Unchanged: `cards-and-hands`, `dealing`, `convention-evaluation`, `auction`,
-  `standard-conventions`, `cli`
+- Unchanged: `cards-and-hands`, `dealing`, `convention-evaluation`, `standard-conventions`, `cli`
