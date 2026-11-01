@@ -77,12 +77,8 @@ func NewBalancedDistributionCondition() Condition {
 // NewNoPriorBidsCondition returns true when no real (non-pass) bid has been made yet.
 func NewNoPriorBidsCondition() Condition {
 	return func(ctx *AuctionContext) bool {
-		for _, action := range ctx.History {
-			if action.Bid != Pass {
-				return false
-			}
-		}
-		return true
+		_, opened := ctx.History.Opening()
+		return !opened
 	}
 }
 
@@ -93,7 +89,7 @@ func NewPartnerBidCondition(bidStr string) Condition {
 		if target == nil {
 			return false
 		}
-		return lastBidByDir(ctx.History, partnerOf(ctx.Position)).Value() == target.Value()
+		return ctx.History.LastBidBy(partnerOf(ctx.Position)).Value() == target.Value()
 	}
 }
 
@@ -104,7 +100,7 @@ func NewRHOBidCondition(bidStr string) Condition {
 		if target == nil {
 			return false
 		}
-		return lastBidByDir(ctx.History, rhoOf(ctx.Position)).Value() == target.Value()
+		return ctx.History.LastBidBy(rhoOf(ctx.Position)).Value() == target.Value()
 	}
 }
 
@@ -115,7 +111,7 @@ func NewLHOBidCondition(bidStr string) Condition {
 		if target == nil {
 			return false
 		}
-		return lastBidByDir(ctx.History, lhoOf(ctx.Position)).Value() == target.Value()
+		return ctx.History.LastBidBy(lhoOf(ctx.Position)).Value() == target.Value()
 	}
 }
 
@@ -171,12 +167,3 @@ func NewRHOMinHCPCondition(min int) Condition {
 func partnerOf(d Direction) Direction { return (d + 2) % 4 }
 func rhoOf(d Direction) Direction     { return (d + 3) % 4 }
 func lhoOf(d Direction) Direction     { return (d + 1) % 4 }
-
-func lastBidByDir(history []BidAction, d Direction) *Bid {
-	for i := len(history) - 1; i >= 0; i-- {
-		if history[i].Direction == d {
-			return history[i].Bid
-		}
-	}
-	return Pass
-}

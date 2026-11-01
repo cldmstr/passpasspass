@@ -203,3 +203,114 @@ func TestAuction_Run_BidLegalityEnforcement(t *testing.T) {
 	is.Equal(ppp.Pass, a.Bids[2].Bid)        // South: same
 	is.Equal(ppp.Pass, a.Bids[3].Bid)        // West: same
 }
+
+// bidStrings renders bids for comparison; NewBid returns a fresh pointer per call.
+func bidStrings(bids []*ppp.Bid) []string {
+	s := make([]string, len(bids))
+	for i, b := range bids {
+		s[i] = b.String()
+	}
+	return s
+}
+
+func historyCases() []struct {
+	name    string
+	history ppp.History
+} {
+	pass := ppp.Pass
+	return []struct {
+		name    string
+		history ppp.History
+	}{
+		{name: "empty", history: nil},
+		{name: "passed out", history: ppp.History{
+			{Direction: ppp.North, Bid: pass},
+			{Direction: ppp.East, Bid: pass},
+			{Direction: ppp.South, Bid: pass},
+			{Direction: ppp.West, Bid: pass},
+		}},
+		{name: "leading pass", history: ppp.History{
+			{Direction: ppp.North, Bid: pass},
+			{Direction: ppp.East, Bid: ppp.NewBid(1, ppp.Hearts)},
+			{Direction: ppp.South, Bid: pass},
+			{Direction: ppp.West, Bid: ppp.NewBid(2, ppp.Hearts)},
+		}},
+	}
+}
+
+func TestHistory_BidsBy(t *testing.T) {
+	want := map[string][]string{
+		"empty":        {},
+		"passed out":   {"Pass"},
+		"leading pass": {"1❤️"},
+	}
+	for _, tc := range historyCases() {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			is.Equal(want[tc.name], bidStrings(tc.history.BidsBy(ppp.East)))
+		})
+	}
+}
+
+func TestHistory_LastBidBy(t *testing.T) {
+	want := map[string]struct{ north, east string }{
+		"empty":        {"Pass", "Pass"}, // a seat that has not called counts as Pass
+		"passed out":   {"Pass", "Pass"},
+		"leading pass": {"Pass", "1❤️"},
+	}
+	for _, tc := range historyCases() {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			is.Equal(want[tc.name].north, tc.history.LastBidBy(ppp.North).String())
+			is.Equal(want[tc.name].east, tc.history.LastBidBy(ppp.East).String())
+		})
+	}
+}
+
+func TestHistory_Opening(t *testing.T) {
+	type result struct {
+		ok  bool
+		dir ppp.Direction
+		bid string
+	}
+	want := map[string]result{
+		"empty":        {ok: false},
+		"passed out":   {ok: false},
+		"leading pass": {ok: true, dir: ppp.East, bid: "1❤️"},
+	}
+	for _, tc := range historyCases() {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			opening, ok := tc.history.Opening()
+			is.Equal(want[tc.name].ok, ok)
+			if ok {
+				is.Equal(want[tc.name].dir, opening.Direction)
+				is.Equal(want[tc.name].bid, opening.Bid.String())
+			}
+		})
+	}
+}
+
+func TestHistory_Contract(t *testing.T) {
+	type result struct {
+		ok  bool
+		dir ppp.Direction
+		bid string
+	}
+	want := map[string]result{
+		"empty":        {ok: false},
+		"passed out":   {ok: false},
+		"leading pass": {ok: true, dir: ppp.West, bid: "2❤️"},
+	}
+	for _, tc := range historyCases() {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			contract, ok := tc.history.Contract()
+			is.Equal(want[tc.name].ok, ok)
+			if ok {
+				is.Equal(want[tc.name].dir, contract.Direction)
+				is.Equal(want[tc.name].bid, contract.Bid.String())
+			}
+		})
+	}
+}

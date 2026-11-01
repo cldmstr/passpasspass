@@ -1,9 +1,9 @@
 # Tasks: add-partner-aware-responses
 
 ## 1. Auction history
-- [ ] 1.1 Add `type History []BidAction` with `BidsBy(d)`, `LastBidBy(d)`, `Opening()` and `Contract()`
-- [ ] 1.2 Change `AuctionContext.History` to `History`; replace `lastBidByDir` with `LastBidBy`
-- [ ] 1.3 Tests: each helper on an empty history, a passed-out history, and a history with leading passes before the opening
+- [x] 1.1 Add `type History []BidAction` with `BidsBy(d)`, `LastBidBy(d)`, `Opening()` and `Contract()`
+- [x] 1.2 Change `AuctionContext.History` to `History`; replace `lastBidByDir` with `LastBidBy`
+- [x] 1.3 Tests: each helper on an empty history, a passed-out history, and a history with leading passes before the opening
 
 ## 2. `auction` pattern condition
 - [ ] 2.1 Add a pattern type whose elements are a call or one of the wildcards `Any`, `Any*` and `Pass*` (design D2), parsed from strings; any other element must parse as a bid

@@ -11,6 +11,51 @@ type BidAction struct {
 	Bid       *Bid
 }
 
+// History is the ordered record of calls in an auction, starting with the dealer's call.
+// The auction as it stood when call i was made is h[:i].
+type History []BidAction
+
+// BidsBy returns every call made by d, Passes included, in order.
+func (h History) BidsBy(d Direction) []*Bid {
+	var bids []*Bid
+	for _, action := range h {
+		if action.Direction == d {
+			bids = append(bids, action.Bid)
+		}
+	}
+	return bids
+}
+
+// LastBidBy returns the most recent call made by d, or Pass if d has not called yet.
+func (h History) LastBidBy(d Direction) *Bid {
+	for i := len(h) - 1; i >= 0; i-- {
+		if h[i].Direction == d {
+			return h[i].Bid
+		}
+	}
+	return Pass
+}
+
+// Opening returns the first non-pass call and true, or false when nobody has bid yet.
+func (h History) Opening() (BidAction, bool) {
+	for _, action := range h {
+		if action.Bid != Pass {
+			return action, true
+		}
+	}
+	return BidAction{}, false
+}
+
+// Contract returns the most recent non-pass call and true, or false when nobody has bid yet.
+func (h History) Contract() (BidAction, bool) {
+	for i := len(h) - 1; i >= 0; i-- {
+		if h[i].Bid != Pass {
+			return h[i], true
+		}
+	}
+	return BidAction{}, false
+}
+
 // HandRange holds inferred HCP and suit-length bounds for one player.
 type HandRange struct {
 	MinHCP, MaxHCP int
@@ -73,7 +118,7 @@ func NewPartnershipEval(self *Hand, partner HandRange) PartnershipEval {
 type AuctionContext struct {
 	SelfHand    *Hand
 	Position    Direction
-	History     []BidAction
+	History     History
 	Partner     HandRange
 	LHO         HandRange
 	RHO         HandRange
