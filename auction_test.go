@@ -1,6 +1,7 @@
 package passpasspass_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/matryer/is"
@@ -73,6 +74,48 @@ func TestAuction_Run_SingleOpener(t *testing.T) {
 		{ppp.South, "Pass"}, // South: 2 HCP
 		{ppp.West, "Pass"},  // West: 22 HCP > ceiling
 	})
+
+	// Every call keeps the context it was made in.
+	is.Equal(len(a.Steps), 4)
+	for i, step := range a.Steps {
+		is.Equal(step.Call, a.Bids[i].Bid)
+		is.Equal(step.Context.Position, a.Bids[i].Direction)
+		is.Equal(len(step.Context.History), i) // the calls before this one
+	}
+	is.Equal(a.Steps[0].Context.Partner.String(), "nothing shown")
+	is.Equal(a.Steps[2].Context.Partner.String(), "15–17 HCP  ♠️ 2–5  ❤️ 2–5  ♦️ 2–5  ♣️ 2–5") // South sees North's 1NT
+	is.Equal(a.Steps[1].Context.RHO.String(), "15–17 HCP  ♠️ 2–5  ❤️ 2–5  ♦️ 2–5  ♣️ 2–5")     // and so does East
+}
+
+func TestAuctionContext_String(t *testing.T) {
+	is := is.New(t)
+	hand := mustHand([]string{"A♣️", "K♣️", "Q♣️", "2♣️", "A♦️", "K♦️", "2♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️", "4♠️"})
+	partner := ppp.DefaultHandRange()
+	partner.MinHCP, partner.MaxHCP = 6, 10
+	partner.SuitLength[ppp.Hearts] = ppp.SuitRange{Min: 6, Max: 13}
+	ctx := &ppp.AuctionContext{
+		SelfHand:    hand,
+		Position:    ppp.South,
+		History:     calls(t, "2H", "Pass"),
+		Partner:     partner,
+		LHO:         ppp.DefaultHandRange(),
+		RHO:         ppp.DefaultHandRange(),
+		Partnership: ppp.NewPartnershipEval(hand, partner),
+	}
+	is.Equal(ctx.String(), `Hand         16 HCP [4,3,3,3]
+Auction      2❤️ Pass
+Partner       6–10 HCP  ♠️ 0–13  ❤️ 6–13  ♦️ 0–13  ♣️ 0–13
+LHO          nothing shown
+RHO          nothing shown
+Partnership  22–26 HCP  ♠️ 3–16  ❤️ 9–16  ♦️ 3–16  ♣️ 4–17
+`)
+}
+
+func TestAuctionContext_String_BeforeTheFirstCall(t *testing.T) {
+	is := is.New(t)
+	hand := mustHand([]string{"A♣️", "K♣️", "Q♣️", "2♣️", "A♦️", "K♦️", "2♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️", "4♠️"})
+	ctx := &ppp.AuctionContext{SelfHand: hand, Partnership: ppp.NewPartnershipEval(hand, ppp.DefaultHandRange())}
+	is.True(strings.Contains(ctx.String(), "Auction      —\n"))
 }
 
 func TestNewPartnershipEval(t *testing.T) {

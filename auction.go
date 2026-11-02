@@ -81,13 +81,20 @@ type AuctionContext struct {
 	Partnership PartnershipEval
 }
 
+// AuctionStep is one call of an auction together with the context the caller's sheet saw.
+type AuctionStep struct {
+	Context *AuctionContext
+	Call    *Bid
+}
+
 // Auction records a complete bridge auction: the deal, all bids, and the final contract.
 type Auction struct {
-	Dealer   Direction   // who opened the bidding
-	Hands    [4]*Hand    // hands indexed by Direction (North=0…West=3)
-	Bids     []BidAction // every bid in order, populated after Run
-	Contract *Bid        // nil = passed out, populated after Run
-	Declarer Direction   // who made the final non-pass bid, populated after Run
+	Dealer   Direction     // who opened the bidding
+	Hands    [4]*Hand      // hands indexed by Direction (North=0…West=3)
+	Bids     []BidAction   // every bid in order, populated after Run
+	Steps    []AuctionStep // the context of every call, in order, populated after Run
+	Contract *Bid          // nil = passed out, populated after Run
+	Declarer Direction     // who made the final non-pass bid, populated after Run
 	cs       *ConventionSheet
 }
 
@@ -138,6 +145,7 @@ func (a *Auction) Run() {
 		read := interp.Read(a.cs, &CallContext{Caller: pos, History: a.Bids, Shown: shown}, bid)
 		shown[pos] = shown[pos].Intersect(read)
 		a.Bids = append(a.Bids, BidAction{Direction: pos, Bid: bid})
+		a.Steps = append(a.Steps, AuctionStep{Context: ctx, Call: bid})
 
 		if bid == Pass {
 			consecutivePasses++
@@ -158,12 +166,24 @@ func (a *Auction) Run() {
 
 // String shows all four hands followed by the bidding sequence and contract.
 func (a *Auction) String() string {
+	return a.HandsString() + a.BiddingString()
+}
+
+// HandsString shows all four hands with their HCP and distribution.
+func (a *Auction) HandsString() string {
 	var sb strings.Builder
 
 	for i, dir := range allDirections {
 		h := a.Hands[i]
 		fmt.Fprintf(&sb, "%s (%d HCP %s):\n%s\n", dir, h.HCP(), h.Distribution(), h)
 	}
+
+	return sb.String()
+}
+
+// BiddingString shows the dealer, the bidding grid and the contract.
+func (a *Auction) BiddingString() string {
+	var sb strings.Builder
 
 	fmt.Fprintf(&sb, "Dealer: %s\n", allDirections[a.Dealer])
 	sb.WriteString("North\tEast\tSouth\tWest\n")
@@ -201,4 +221,33 @@ func boundsOf(m HandModel) HandRange {
 		return b
 	}
 	return DefaultHandRange()
+}
+
+func (d Direction) String() string {
+	return allDirections[d]
+}
+
+func (p PartnershipEval) String() string {
+	return fmt.Sprintf("%2d–%-2d HCP", p.MinCombinedHCP, p.MaxCombinedHCP) + suitRangesString(p.SuitFit)
+}
+
+// String shows what the caller's sheet saw, one labelled line each: own hand, the calls so far,
+// what partner, LHO and RHO had shown, and the partnership evaluation.
+func (c *AuctionContext) String() string {
+	auction := "—"
+	if len(c.History) > 0 {
+		calls := make([]string, len(c.History))
+		for i, ba := range c.History {
+			calls[i] = ba.Bid.String()
+		}
+		auction = strings.Join(calls, " ")
+	}
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "Hand         %d HCP %s\n", c.SelfHand.HCP(), c.SelfHand.Distribution())
+	fmt.Fprintf(&sb, "Auction      %s\n", auction)
+	fmt.Fprintf(&sb, "Partner      %s\n", c.Partner)
+	fmt.Fprintf(&sb, "LHO          %s\n", c.LHO)
+	fmt.Fprintf(&sb, "RHO          %s\n", c.RHO)
+	fmt.Fprintf(&sb, "Partnership  %s\n", c.Partnership)
+	return sb.String()
 }

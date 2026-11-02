@@ -34,7 +34,7 @@
 ## 6. Auction state and per-player view
 - [ ] 6.1 Add `AuctionState` (history, `[4]HandModel` shown models, facts per partnership, interpreter, sheets by seat) with `Record(d, bid)`; constructor takes all dependencies
 - [ ] 6.2 Add `Perspective` (own hand, partner's model tightened by own cards, LHO/RHO passed through, own partnership's facts, current contract) and build `AuctionContext` and `PartnershipEval` from it
-- [ ] 6.3 Change `HandRange` fields in `AuctionContext` to `HandModel`; `PartnershipEval` uses partner's `Bounds()`
+- [ ] 6.3 Change `HandRange` fields in `AuctionContext` to `HandModel`; `PartnershipEval` uses partner's `Bounds()`; `AuctionContext.String` prints every alternative of a model on its own line
 - [ ] 6.4 Rewrite `Auction.Run` on top of `AuctionState` and remove its exclusion in `.golangci.yml`; `NewAuction` takes the state; `Table.RunAuction` wires dealer, sheet, interpreter and state
 - [ ] 6.5 Tests: partner's suit maximum drops to 13 minus own length; partner's HCP maximum drops to 40 minus own HCP; existing auction tests still pass
 

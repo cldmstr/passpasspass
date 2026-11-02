@@ -1,9 +1,32 @@
 package passpasspass
 
+import (
+	"fmt"
+	"strings"
+)
+
 // HandRange holds inferred HCP and suit-length bounds for one player.
 type HandRange struct {
 	MinHCP, MaxHCP int
 	SuitLength     [4]SuitRange // indexed clubs(0)…spades(3)
+}
+
+// String shows the HCP range and the length range of every suit, or "nothing shown" for the
+// unconstrained range.
+func (r HandRange) String() string {
+	if r == DefaultHandRange() {
+		return "nothing shown"
+	}
+	return fmt.Sprintf("%2d–%-2d HCP", r.MinHCP, r.MaxHCP) + suitRangesString(r.SuitLength)
+}
+
+// suitRangesString shows a length range per suit, from spades down to clubs.
+func suitRangesString(suits [4]SuitRange) string {
+	var sb strings.Builder
+	for s := Spades; s >= Clubs; s-- {
+		fmt.Fprintf(&sb, "  %s %d–%d", allSuits[s], suits[s].Min, suits[s].Max)
+	}
+	return sb.String()
 }
 
 // DefaultHandRange returns an unconstrained HandRange.

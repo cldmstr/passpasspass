@@ -37,6 +37,9 @@ go test -run TestLoader_LoadCard_HCPCondition ./...
 # Build and run the CLI (defaults to the embedded Colin card)
 go run ./cmd/ppp/main.go
 
+# Also print the context every call was made in
+go run ./cmd/ppp/main.go -v
+
 # Run the CLI with a custom convention card
 go run ./cmd/ppp/main.go /path/to/data/dir cards/my_card.yaml
 
