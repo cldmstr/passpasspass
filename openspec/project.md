@@ -45,7 +45,8 @@ Main types and their files:
 | `Condition` constructors | `condition.go` | Predicates over an `AuctionContext` |
 | `parseCondition`, `conditionParsers` | `condition_parser.go` | Parses and validates YAML conditions |
 | `Loader` | `loader.go` | YAML card and sub-convention loading, `file:line` load errors |
-| `Auction`, `AuctionContext`, `HandRange` | `auction.go` | Bidding loop and hand inference |
+| `Auction`, `AuctionContext` | `auction.go` | Bidding loop and hand inference |
+| `HandRange`, `HandModel` | `hand_model.go` | What a player has shown: alternative HCP and suit-length ranges |
 | `Table` | `table.go` | Wires dealer, sheet and auction |
 
 ### Linting

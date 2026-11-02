@@ -46,22 +46,6 @@ func (h History) Opening() (BidAction, bool) {
 	return BidAction{}, false
 }
 
-// HandRange holds inferred HCP and suit-length bounds for one player.
-type HandRange struct {
-	MinHCP, MaxHCP int
-	SuitLength     [4]SuitRange // indexed clubs(0)…spades(3)
-}
-
-// DefaultHandRange returns an unconstrained HandRange.
-func DefaultHandRange() HandRange {
-	return HandRange{
-		MinHCP: 0, MaxHCP: MaxHandHCP,
-		SuitLength: [4]SuitRange{
-			{0, HandSize}, {0, HandSize}, {0, HandSize}, {0, HandSize},
-		},
-	}
-}
-
 // PartnershipEval captures the combined picture of self + partner.
 type PartnershipEval struct {
 	MinCombinedHCP int
@@ -258,35 +242,4 @@ func applyBounds(c Condition, r *HandRange) {
 		}
 		*r = intersectRanges(*r, u)
 	}
-}
-
-func intersectRanges(a, b HandRange) HandRange {
-	r := a
-	if b.MinHCP > r.MinHCP {
-		r.MinHCP = b.MinHCP
-	}
-	if b.MaxHCP < r.MaxHCP {
-		r.MaxHCP = b.MaxHCP
-	}
-	for i := range 4 {
-		if b.SuitLength[i].Min > r.SuitLength[i].Min {
-			r.SuitLength[i].Min = b.SuitLength[i].Min
-		}
-		if b.SuitLength[i].Max < r.SuitLength[i].Max {
-			r.SuitLength[i].Max = b.SuitLength[i].Max
-		}
-	}
-	return r
-}
-
-// unionRanges returns the smallest range that holds both a and b.
-func unionRanges(a, b HandRange) HandRange {
-	r := a
-	r.MinHCP = min(r.MinHCP, b.MinHCP)
-	r.MaxHCP = max(r.MaxHCP, b.MaxHCP)
-	for i := range 4 {
-		r.SuitLength[i].Min = min(r.SuitLength[i].Min, b.SuitLength[i].Min)
-		r.SuitLength[i].Max = max(r.SuitLength[i].Max, b.SuitLength[i].Max)
-	}
-	return r
 }

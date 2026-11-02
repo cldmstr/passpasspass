@@ -90,12 +90,17 @@ file and are removed (tasks 9.1 and 9.2). `rho_bid` and `lho_bid` were already r
 ```go
 type HandModel struct{ Cases []HandRange }
 ```
-- `Intersect` keeps every non-empty pairwise intersection; an empty model means "impossible".
+- `Intersect` keeps every pairwise intersection that a hand can fit, tightened; an empty model
+  means "impossible".
 - `Tighten` applies the 13-card rule to each alternative: no suit's maximum exceeds 13 minus the
   sum of the other suits' minimums, and no suit's minimum is below 13 minus the sum of the other
-  suits' maximums. It also caps HCP at 37.
+  suits' maximums. Narrowing one suit can narrow another, so it repeats until nothing changes. It
+  also caps HCP at 37, and drops alternatives no hand can fit.
 - `Bounds` returns the smallest single range covering all alternatives, for display and for
-  simple checks.
+  simple checks, and false for an empty model.
+
+`HandModel`, `HandRange` and the range helpers `intersectRanges` and `unionRanges` live in
+`hand_model.go`.
 
 Ranges stay boxes. Shape facts that a box cannot express, such as "at most one doubleton" or the
 Rule of 20, are approximated or dropped: `balanced` becomes 2–5 in every suit; `rule_of_20`
@@ -122,8 +127,7 @@ whose bid equals the call and whose model is not empty. Taking every candidate, 
 first, avoids claiming more than is known when an earlier convention's guards held but its hand
 conditions might not have.
 
-`extractBounds`, `applyBounds`, `intersectRanges`, `unionRanges` and `inferAndUpdate` are
-replaced. The
+`extractBounds`, `applyBounds` and `inferAndUpdate` are replaced. The
 interpreter is an interface injected into `AuctionState`, and takes the caller's sheet as an
 argument so that partnerships can later play different cards.
 
