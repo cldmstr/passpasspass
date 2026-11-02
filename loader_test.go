@@ -244,6 +244,35 @@ conventions:
 			wantErr: `card.yaml:3: bid 1NT: convention has no conditions`,
 		},
 		{
+			name: "conditions without a value",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - bid: 1NT
+    conditions:
+`},
+			wantErr: `card.yaml:3: bid 1NT: convention has no conditions`,
+		},
+		{
+			name: "empty conditions",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - bid: 1NT
+    conditions: []
+`},
+			wantErr: `card.yaml:4: bid 1NT: a condition list must not be empty`,
+		},
+		{
+			name: "misspelt condition key",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - bid: 2S
+    conditions:
+      hcp: [0, 10]
+      suitlength: {spades: [6, 13]}
+`},
+			wantErr: `card.yaml:6: bid 2S: suitlength: unknown condition key (known keys: all, any, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)`,
+		},
+		{
 			name: "key repeated in a convention",
 			files: map[string]string{"card.yaml": `name: test
 conventions:
@@ -279,7 +308,7 @@ conventions:
   - bid: 1NT
     conditions: balanced
 `},
-			wantErr: `card.yaml:4: bid 1NT: conditions must be a mapping or a list`,
+			wantErr: `card.yaml:4: bid 1NT: a condition must be a mapping or a list`,
 		},
 		{
 			name: "unknown top-level key in a card",
@@ -328,6 +357,22 @@ convention:
 `,
 			},
 			wantErr: `conventions/baron.yaml:2: convention: unknown sub-convention key (known keys: conventions, name)`,
+		},
+		{
+			name: "invalid condition in a sub-convention",
+			files: map[string]string{
+				"card.yaml": baronCard,
+				"conventions/baron.yaml": `name: baron
+conventions:
+  - bid: 2S
+    conditions:
+      all:
+        - partner_bid: "1NT"
+        - any:
+            - suit_length: {hearts: [0, 14]}
+`,
+			},
+			wantErr: `conventions/baron.yaml:8: bid 2S: all.any.suit_length.hearts: [0, 14] is outside 0 to 13`,
 		},
 		{
 			name: "error inside a sub-convention's convention",

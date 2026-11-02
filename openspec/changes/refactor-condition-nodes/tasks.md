@@ -30,11 +30,11 @@
 - [x] 5.3 Tests: misspelt `condtions`, `bid` missing, unknown top-level key in a card; error text contains the file, bid and line
 
 ## 6. Switching over and cleaning up
-- [ ] 6.1 `Convention` keeps its parsed `Condition`s and drops `node`; `parseConventionEntry` uses `parseCondition` instead of `decodeConditionNode`; loader tests for the "Misspelt condition key", "Empty conditions" and "Error location" scenarios
-- [ ] 6.2 `applyBounds` switches on node types instead of `conditionNode` fields (design D6)
-- [ ] 6.3 Remove `conditionNode`, `buildCondition` and `decodeConditionNode` (`yamlConvention` and its `UnmarshalYAML` went in 5.1)
-- [ ] 6.4 Remove the `buildCondition` exclusion from `.golangci.yml`; `golangci-lint run ./...` is clean
-- [ ] 6.5 All built-in data loads and every existing round-trip test passes unchanged
+- [x] 6.1 `Convention` keeps its parsed `Condition`s and drops `node`; `parseConventionEntry` uses `parseCondition` instead of `decodeConditionNode`; loader tests for the "Misspelt condition key", "Empty conditions" and "Error location" scenarios
+- [x] 6.2 `applyBounds` switches on node types instead of `conditionNode` fields (design D6)
+- [x] 6.3 Remove `conditionNode`, `buildCondition` and `decodeConditionNode` (`yamlConvention` and its `UnmarshalYAML` went in 5.1)
+- [x] 6.4 Remove the `buildCondition` exclusion from `.golangci.yml`; `golangci-lint run ./...` is clean
+- [x] 6.5 All built-in data loads and every existing round-trip test passes unchanged
 
 ## 7. Documentation and archive
 - [ ] 7.1 Update the condition syntax and load errors in `openspec/project.md`, if described there

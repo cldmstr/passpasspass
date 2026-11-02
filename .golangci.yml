@@ -77,12 +77,8 @@ linters:
 
       # Temporary: each function below is rewritten or removed by add-partner-aware-responses.
       # Delete the matching rule when its task is done.
-      - linters: [gocognit, cyclop]
-        text: "applyBounds" # removed in task 5.7
       - linters: [cyclop]
         text: "function Run " # rewritten on top of AuctionState in task 6.4
-      - linters: [cyclop]
-        text: "buildCondition" # pending review of how condition nodes are built
 
 formatters:
   enable:

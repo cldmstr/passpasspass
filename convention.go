@@ -54,7 +54,6 @@ func (b *Bid) String() string {
 type Convention struct {
 	Bid        *Bid
 	conditions []Condition
-	node       conditionNode
 }
 
 // NewConvention returns a convention that bids bid when all conditions pass.

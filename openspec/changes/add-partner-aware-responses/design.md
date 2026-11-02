@@ -118,7 +118,8 @@ whose bid equals the call and whose model is not empty. Taking every candidate, 
 first, avoids claiming more than is known when an earlier convention's guards held but its hand
 conditions might not have.
 
-`extractBounds`, `applyBounds`, `intersectRanges` and `inferAndUpdate` are replaced. The
+`extractBounds`, `applyBounds`, `intersectRanges`, `unionRanges` and `inferAndUpdate` are
+replaced. The
 interpreter is an interface injected into `AuctionState`, and takes the caller's sheet as an
 argument so that partnerships can later play different cards.
 

@@ -27,7 +27,7 @@
 - [ ] 5.4 Implement `Shown` on the `not` node as in design D9: flip auction-only guards; complement `hcp` and `suit_length` boxes; push through `all` and `any` with De Morgan's laws; approximated nodes give one unconstrained alternative
 - [ ] 5.5 Add the `Interpreter` interface and the default implementation: the union over every convention whose bid equals the call and whose model is not empty
 - [ ] 5.6 Cap alternatives per convention (design risk 1, including alternatives added by `not`) and fail loading above the cap
-- [ ] 5.7 Remove `inferAndUpdate`, `extractBounds`, `applyBounds` and `intersectRanges`, and the `applyBounds` exclusion in `.golangci.yml`
+- [ ] 5.7 Remove `inferAndUpdate`, `extractBounds`, `applyBounds`, `intersectRanges` and `unionRanges`
 - [ ] 5.8 Tests on the Colin card: `1NT` opening shows 15–17 and 2–5 in every suit; a `2♦️` response to `1NT` shows 5+ hearts, not Multi; a Multi `2♦️` opening shows four alternatives; a Pass leaves the model unchanged
 - [ ] 5.9 Tests for `not`: `not: {hcp: [0, 9]}` shows 10+; `not: {suit_length: {hearts: [4, 13]}}` shows 0–3 hearts; `not: {balanced: true}` leaves the model unconstrained; a negated auction guard that holds removes the convention
 

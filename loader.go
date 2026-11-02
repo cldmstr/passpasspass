@@ -130,105 +130,6 @@ func mappingValue(n *yaml.Node, key string) *yaml.Node {
 	return nil
 }
 
-// conditionNode is a polymorphic YAML condition. Exactly one field is
-// populated after unmarshaling.
-type conditionNode struct {
-	HCP        []int            `yaml:"hcp"`
-	Balanced   *bool            `yaml:"balanced"`
-	RuleOf20   *bool            `yaml:"rule_of_20"`
-	SuitLength map[string][]int `yaml:"suit_length"`
-	All        []conditionNode  `yaml:"all"`
-	Any        []conditionNode  `yaml:"any"`
-
-	// history-aware
-	PartnerBid  *string `yaml:"partner_bid"`
-	NoPriorBids *bool   `yaml:"no_prior_bids"`
-
-	// partnership evaluation
-	PartnershipHCP []int `yaml:"partnership_hcp"`
-}
-
-func buildCondition(n conditionNode) (Condition, error) {
-	switch {
-	case n.HCP != nil:
-		return NewHCPIntervalCondition(n.HCP[0], n.HCP[1]), nil
-
-	case n.Balanced != nil:
-		return NewBalancedDistributionCondition(), nil
-
-	case n.RuleOf20 != nil:
-		return NewRuleOfTwentyCondition(), nil
-
-	case n.SuitLength != nil:
-		r := DistributionRange{{0, 13}, {0, 13}, {0, 13}, {0, 13}}
-		for suit, rng := range n.SuitLength {
-			s, err := NewSuitFromString(suit)
-			if err != nil {
-				return nil, fmt.Errorf("unknown suit %q in suit_length", suit)
-			}
-			i := int(s)
-			if len(rng) != 2 {
-				return nil, fmt.Errorf("suit_length %q must have exactly 2 values [min, max]", suit)
-			}
-			r[i] = SuitRange{rng[0], rng[1]}
-		}
-		return NewMinMaxDistributionCondition(r), nil
-
-	case n.All != nil:
-		conditions := make([]Condition, len(n.All))
-		for i, child := range n.All {
-			c, err := buildCondition(child)
-			if err != nil {
-				return nil, err
-			}
-			conditions[i] = c
-		}
-		return NewAllCondition(conditions...), nil
-
-	case n.Any != nil:
-		conditions := make([]Condition, len(n.Any))
-		for i, child := range n.Any {
-			c, err := buildCondition(child)
-			if err != nil {
-				return nil, err
-			}
-			conditions[i] = c
-		}
-		return NewMultiCondition(conditions...), nil
-
-	case n.PartnerBid != nil:
-		return NewPartnerBidCondition(*n.PartnerBid), nil
-
-	case n.NoPriorBids != nil:
-		return NewNoPriorBidsCondition(), nil
-
-	case n.PartnershipHCP != nil:
-		if len(n.PartnershipHCP) != 2 {
-			return nil, fmt.Errorf("partnership_hcp must have exactly 2 values [min, max]")
-		}
-		return NewPartnershipHCPCondition(n.PartnershipHCP[0], n.PartnershipHCP[1]), nil
-
-	default:
-		return nil, fmt.Errorf("empty condition node")
-	}
-}
-
-// decodeConditionNode decodes conditions for buildCondition; a list is an implicit `all`.
-// parseCondition replaces both in task 6.1.
-func decodeConditionNode(v *yaml.Node) (conditionNode, error) {
-	var n conditionNode
-	switch v.Kind {
-	case yaml.SequenceNode:
-		err := v.Decode(&n.All)
-		return n, err
-	case yaml.MappingNode:
-		err := v.Decode(&n)
-		return n, err
-	default:
-		return n, errors.New("conditions must be a mapping or a list")
-	}
-}
-
 // parseConvention turns a convention entry, a mapping with `bid` and `conditions`, into a
 // Convention. Errors name the bid when the entry has one.
 func parseConvention(n *yaml.Node) (*Convention, error) {
@@ -254,24 +155,18 @@ func parseConventionEntry(n *yaml.Node) (*Convention, error) {
 	if bidNode == nil {
 		return nil, errorAt(n, errors.New("convention has no bid"))
 	}
-	if conditionsNode == nil {
+	if conditionsNode == nil || conditionsNode.ShortTag() == "!!null" {
 		return nil, errorAt(n, errors.New("convention has no conditions"))
 	}
 	bid, err := parseBid(bidNode)
 	if err != nil {
 		return nil, errorAt(bidNode, err)
 	}
-	node, err := decodeConditionNode(conditionsNode)
+	condition, err := parseCondition(conditionsNode)
 	if err != nil {
-		return nil, errorAt(conditionsNode, err)
+		return nil, err
 	}
-	condition, err := buildCondition(node)
-	if err != nil {
-		return nil, errorAt(conditionsNode, err)
-	}
-	c := NewConvention(bid, condition)
-	c.node = node
-	return c, nil
+	return NewConvention(bid, condition), nil
 }
 
 // addConventions parses every convention entry and adds it to cs, in file order.
