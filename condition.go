@@ -40,6 +40,18 @@ func (c allCondition) Eval(ctx *AuctionContext) bool {
 	return true
 }
 
+// notCondition passes when its child fails.
+type notCondition struct{ child Condition }
+
+// NewNotCondition passes when condition fails.
+func NewNotCondition(condition Condition) Condition {
+	return notCondition{child: condition}
+}
+
+func (c notCondition) Eval(ctx *AuctionContext) bool {
+	return !c.child.Eval(ctx)
+}
+
 // hcpCondition passes when the bidder's HCP lies within [lo, hi].
 type hcpCondition struct{ lo, hi int }
 

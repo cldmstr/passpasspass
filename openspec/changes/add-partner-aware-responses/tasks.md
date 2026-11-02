@@ -12,8 +12,8 @@
 - [x] 2.4 Tests: `[]` matches only before the dealer's call; `[1H, Pass]` matches a dealer opening but not a third-seat opening; `[Pass*, 1H, Pass]` matches the opening in every seat; `[1H, Pass]` and `[Pass, 1H, Pass]` tell an unpassed responder from a passed one; `Any` matches exactly one call; `Any*` matches zero, one and several calls; `Pass*` does not match a bid; a longer history does not match; an opponent's bid in place of a Pass does not match; an invalid element fails to load
 
 ## 3. `not` node
-- [ ] 3.1 Add `NewNotCondition(c)` and a `not` parser; its value is one condition (a mapping with one or more keys, or a list) negated as a whole; an empty value is a load error; the flag-key error message now suggests `not`
-- [ ] 3.2 Tests: `not` flips a hand condition and an auction pattern; `not` over a mapping with two keys, over `any` and over `all`; nested inside `all`; empty value fails to load
+- [x] 3.1 Add `NewNotCondition(c)` and a `not` parser; its value is one condition (a mapping with one or more keys, or a list) negated as a whole; an empty value is a load error; the flag-key error message now suggests `not`
+- [x] 3.2 Tests: `not` flips a hand condition and an auction pattern; `not` over a mapping with two keys, over `any` and over `all`; nested inside `all`; empty value fails to load
 
 ## 4. Hand model with alternatives
 - [ ] 4.1 Add `HandModel{Cases []HandRange}` with `Intersect`, `Tighten`, `Bounds`, `IsEmpty`, and a constructor for the unconstrained model

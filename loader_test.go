@@ -270,7 +270,7 @@ conventions:
       hcp: [0, 10]
       suitlength: {spades: [6, 13]}
 `},
-			wantErr: `card.yaml:6: bid 2S: suitlength: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)`,
+			wantErr: `card.yaml:6: bid 2S: suitlength: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, not, partner_bid, partnership_hcp, rule_of_20, suit_length)`,
 		},
 		{
 			name: "invalid auction pattern element",

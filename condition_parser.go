@@ -31,6 +31,7 @@ func init() {
 		"partner_bid":     parsePartnerBid,
 		"partnership_hcp": parsePartnershipHCP,
 		"auction":         parseAuction,
+		"not":             parseNot,
 	}
 	conditionKeys = slices.Sorted(maps.Keys(conditionParsers))
 }
@@ -104,11 +105,12 @@ func parseRange(v *yaml.Node, ceiling int) (lo, hi int, err error) {
 	return lo, hi, nil
 }
 
-// parseFlag accepts only the YAML boolean `true`.
-func parseFlag(v *yaml.Node) error {
+// parseFlag accepts only the YAML boolean `true` as the value of the flag key. The error points
+// to `not` for negating the flag.
+func parseFlag(v *yaml.Node, key string) error {
 	var b bool
 	if v.Kind != yaml.ScalarNode || v.ShortTag() != "!!bool" || v.Decode(&b) != nil || !b {
-		return errors.New("only true is accepted")
+		return fmt.Errorf("only true is accepted; to negate it, use not: {%s: true}", key)
 	}
 	return nil
 }
@@ -187,7 +189,7 @@ func parseSuitLength(v *yaml.Node) (Condition, error) {
 
 // parseBalanced parses `balanced: true`.
 func parseBalanced(v *yaml.Node) (Condition, error) {
-	if err := parseFlag(v); err != nil {
+	if err := parseFlag(v, "balanced"); err != nil {
 		return nil, err
 	}
 	return NewBalancedDistributionCondition(), nil
@@ -195,7 +197,7 @@ func parseBalanced(v *yaml.Node) (Condition, error) {
 
 // parseRuleOf20 parses `rule_of_20: true`.
 func parseRuleOf20(v *yaml.Node) (Condition, error) {
-	if err := parseFlag(v); err != nil {
+	if err := parseFlag(v, "rule_of_20"); err != nil {
 		return nil, err
 	}
 	return NewRuleOfTwentyCondition(), nil
@@ -203,7 +205,7 @@ func parseRuleOf20(v *yaml.Node) (Condition, error) {
 
 // parseNoPriorBids parses `no_prior_bids: true`.
 func parseNoPriorBids(v *yaml.Node) (Condition, error) {
-	if err := parseFlag(v); err != nil {
+	if err := parseFlag(v, "no_prior_bids"); err != nil {
 		return nil, err
 	}
 	return NewNoPriorBidsCondition(), nil
@@ -225,6 +227,16 @@ func parseAny(v *yaml.Node) (Condition, error) {
 		return nil, err
 	}
 	return NewMultiCondition(conditions...), nil
+}
+
+// parseNot parses `not: <condition>`, which passes when the condition fails. The condition is a
+// mapping or a list; several keys or items are negated as a whole.
+func parseNot(v *yaml.Node) (Condition, error) {
+	condition, err := parseCondition(v)
+	if err != nil {
+		return nil, err
+	}
+	return NewNotCondition(condition), nil
 }
 
 // parsePartnerBid parses `partner_bid: <call>`.

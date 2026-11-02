@@ -47,6 +47,9 @@ func TestParseCondition(t *testing.T) {
 		{name: "partner_bid Pass", src: `partner_bid: Pass`, want: ppp.NewPartnerBidCondition("Pass")},
 		{name: "auction", src: `auction: [Pass*, 1H, Pass, Any, Any*]`, want: auctionCondition(t, "Pass*", "1H", "Pass", "Any", "Any*")},
 		{name: "auction before the dealer's call", src: `auction: []`, want: auctionCondition(t)},
+		{name: "not", src: `not: {hcp: [15, 17]}`, want: ppp.NewNotCondition(hcp)},
+		{name: "not over two keys", src: `not: {hcp: [15, 17], balanced: true}`, want: ppp.NewNotCondition(ppp.NewAllCondition(hcp, balanced))},
+		{name: "not over a list", src: `not: [{hcp: [15, 17]}, {balanced: true}]`, want: ppp.NewNotCondition(ppp.NewAllCondition(hcp, balanced))},
 		{
 			name: "suit_length with several suits in any spelling",
 			src:  `suit_length: {hearts: [6, 13], S: [0, 3], ♣️: [1, 2]}`,
@@ -141,6 +144,70 @@ any:
 	}
 }
 
+// TestParseCondition_Not covers `not` over hand conditions, auction patterns and combinators,
+// following the combinator scenarios of the bidding-conditions spec.
+func TestParseCondition_Not(t *testing.T) {
+	// A♣️(4)+J♣️(1) = 5 HCP, 2 hearts
+	fiveTwoHearts := mustHand([]string{"A♣️", "J♣️", "2♣️", "3♣️", "4♣️", "2♦️", "3♦️", "4♦️", "2❤️", "3❤️", "2♠️", "3♠️", "4♠️"})
+	// A♣️(4)+J♣️(1) = 5 HCP, 3 hearts
+	fiveThreeHearts := mustHand([]string{"A♣️", "J♣️", "2♣️", "3♣️", "2♦️", "3♦️", "4♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️", "4♠️"})
+	// A♣️(4)+J♣️(1) = 5 HCP, 4 hearts
+	fiveFourHearts := mustHand([]string{"A♣️", "J♣️", "2♣️", "3♣️", "2♦️", "3♦️", "2❤️", "3❤️", "4❤️", "5❤️", "2♠️", "3♠️", "4♠️"})
+	// A♣️(4)+K♣️(3)+Q♣️(2)+K♦️(3) = 12 HCP, 4 hearts
+	twelveFourHearts := mustHand([]string{"A♣️", "K♣️", "Q♣️", "2♣️", "K♦️", "2♦️", "2❤️", "3❤️", "4❤️", "5❤️", "2♠️", "3♠️", "4♠️"})
+	// K♣️(3) = 3 HCP
+	three := mustHand([]string{"K♣️", "2♣️", "3♣️", "4♣️", "2♦️", "3♦️", "4♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️", "4♠️"})
+	// A♣️(4)+K♣️(3)+Q♣️(2)+J♣️(1) = 10 HCP
+	ten := mustHand([]string{"A♣️", "K♣️", "Q♣️", "J♣️", "2♣️", "2♦️", "3♦️", "4♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️"})
+	// A♣️(4)+K♣️(3)+Q♣️(2)+J♣️(1)+A♦️(4)+K♦️(3)+J♦️(1) = 18 HCP
+	eighteen := mustHand([]string{"A♣️", "K♣️", "Q♣️", "J♣️", "A♦️", "K♦️", "J♦️", "2❤️", "3❤️", "4❤️", "2♠️", "3♠️", "4♠️"})
+
+	notBoth := `not: {hcp: [0, 9], suit_length: {hearts: [4, 13]}}`
+	notEither := `not: {any: [{hcp: [0, 5]}, {hcp: [16, 37]}]}`
+
+	tt := []struct {
+		name   string
+		src    string
+		hand   *ppp.Hand
+		calls  []string
+		passes bool
+	}{
+		{name: "hand condition holds", src: `not: {hcp: [0, 9]}`, hand: fiveTwoHearts, passes: false},
+		{name: "hand condition fails", src: `not: {hcp: [0, 9]}`, hand: twelveFourHearts, passes: true},
+		{name: "excluding a shape", src: `not: {suit_length: {hearts: [4, 13]}}`, hand: fiveThreeHearts, passes: true},
+
+		{name: "auction pattern holds", src: `not: {auction: [Pass*, 1NT, Pass]}`, hand: ten, calls: []string{"1NT", "Pass"}, passes: false},
+		{name: "auction pattern fails", src: `not: {auction: [Pass*, 1NT, Pass]}`, hand: ten, calls: []string{"1H", "Pass"}, passes: true},
+
+		{name: "two keys: only the first holds", src: notBoth, hand: fiveTwoHearts, passes: true},
+		{name: "two keys: only the second holds", src: notBoth, hand: twelveFourHearts, passes: true},
+		{name: "two keys: both hold", src: notBoth, hand: fiveFourHearts, passes: false},
+
+		{name: "all: both hold", src: `not: {all: [{hcp: [0, 9]}, {suit_length: {hearts: [4, 13]}}]}`, hand: fiveFourHearts, passes: false},
+		{name: "all: one holds", src: `not: {all: [{hcp: [0, 9]}, {suit_length: {hearts: [4, 13]}}]}`, hand: fiveTwoHearts, passes: true},
+		{name: "list: both hold", src: `not: [{hcp: [0, 9]}, {suit_length: {hearts: [4, 13]}}]`, hand: fiveFourHearts, passes: false},
+
+		{name: "any: neither holds", src: notEither, hand: ten, passes: true},
+		{name: "any: the first holds", src: notEither, hand: three, passes: false},
+		{name: "any: the second holds", src: notEither, hand: eighteen, passes: false},
+
+		{name: "nested inside all: passes", src: `all: [{hcp: [0, 9]}, {not: {suit_length: {hearts: [4, 13]}}}]`, hand: fiveTwoHearts, passes: true},
+		{name: "nested inside all: not fails", src: `all: [{hcp: [0, 9]}, {not: {suit_length: {hearts: [4, 13]}}}]`, hand: fiveFourHearts, passes: false},
+		{name: "nested inside all: sibling fails", src: `all: [{hcp: [0, 9]}, {not: {suit_length: {hearts: [4, 13]}}}]`, hand: twelveFourHearts, passes: false},
+
+		{name: "double negation", src: `not: {not: {hcp: [0, 9]}}`, hand: fiveTwoHearts, passes: true},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			c, err := parseCondition(t, tc.src)
+			is.NoErr(err)
+			is.Equal(c.Eval(&ppp.AuctionContext{SelfHand: tc.hand, History: calls(t, tc.calls...)}), tc.passes)
+		})
+	}
+}
+
 func TestParseCondition_Errors(t *testing.T) {
 	tt := []struct {
 		name    string
@@ -150,17 +217,17 @@ func TestParseCondition_Errors(t *testing.T) {
 		{
 			name:    "unknown key",
 			src:     `suit_len: {hearts: [6, 13]}`,
-			wantErr: "1: suit_len: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
+			wantErr: "1: suit_len: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, not, partner_bid, partnership_hcp, rule_of_20, suit_length)",
 		},
 		{
 			name:    "unknown key next to a known one",
 			src:     "hcp: [15, 17]\nbalance: true",
-			wantErr: "2: balance: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
+			wantErr: "2: balance: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, not, partner_bid, partnership_hcp, rule_of_20, suit_length)",
 		},
 		{
 			name:    "unknown key nested in any",
 			src:     "any:\n  - hcp: [15, 17]\n  - hpc: [20, 21]",
-			wantErr: "3: any.hpc: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
+			wantErr: "3: any.hpc: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, not, partner_bid, partnership_hcp, rule_of_20, suit_length)",
 		},
 		{
 			name:    "error deep inside nested conditions",
@@ -208,13 +275,18 @@ func TestParseCondition_Errors(t *testing.T) {
 		{name: "suit_length above 13", src: `suit_length: {hearts: [0, 14]}`, wantErr: "1: suit_length.hearts: [0, 14] is outside 0 to 13"},
 		{name: "suit_length below 0", src: `suit_length: {hearts: [-1, 3]}`, wantErr: "1: suit_length.hearts: [-1, 3] is outside 0 to 13"},
 		{name: "suit_length reversed", src: `suit_length: {spades: [6, 5]}`, wantErr: "1: suit_length.spades: min 6 is greater than max 5"},
-		{name: "balanced false", src: `balanced: false`, wantErr: "1: balanced: only true is accepted"},
-		{name: "balanced yes please", src: `balanced: yes please`, wantErr: "1: balanced: only true is accepted"},
-		{name: "balanced yes", src: `balanced: yes`, wantErr: "1: balanced: only true is accepted"},
-		{name: "balanced quoted true", src: `balanced: "true"`, wantErr: "1: balanced: only true is accepted"},
-		{name: "balanced empty", src: `balanced:`, wantErr: "1: balanced: only true is accepted"},
-		{name: "rule_of_20 false", src: `rule_of_20: false`, wantErr: "1: rule_of_20: only true is accepted"},
-		{name: "no_prior_bids false", src: `no_prior_bids: false`, wantErr: "1: no_prior_bids: only true is accepted"},
+		{name: "balanced false", src: `balanced: false`, wantErr: "1: balanced: only true is accepted; to negate it, use not: {balanced: true}"},
+		{name: "balanced yes please", src: `balanced: yes please`, wantErr: "1: balanced: only true is accepted; to negate it, use not: {balanced: true}"},
+		{name: "balanced yes", src: `balanced: yes`, wantErr: "1: balanced: only true is accepted; to negate it, use not: {balanced: true}"},
+		{name: "balanced quoted true", src: `balanced: "true"`, wantErr: "1: balanced: only true is accepted; to negate it, use not: {balanced: true}"},
+		{name: "balanced empty", src: `balanced:`, wantErr: "1: balanced: only true is accepted; to negate it, use not: {balanced: true}"},
+		{name: "rule_of_20 false", src: `rule_of_20: false`, wantErr: "1: rule_of_20: only true is accepted; to negate it, use not: {rule_of_20: true}"},
+		{name: "no_prior_bids false", src: `no_prior_bids: false`, wantErr: "1: no_prior_bids: only true is accepted; to negate it, use not: {no_prior_bids: true}"},
+		{name: "not without a value", src: `not:`, wantErr: "1: not: a condition must be a mapping or a list"},
+		{name: "not with an empty mapping", src: `not: {}`, wantErr: "1: not: a condition mapping must not be empty"},
+		{name: "not with an empty list", src: `not: []`, wantErr: "1: not: a condition list must not be empty"},
+		{name: "not with a scalar", src: `not: balanced`, wantErr: "1: not: a condition must be a mapping or a list"},
+		{name: "not over an invalid condition", src: `not: {hcp: [9, 0]}`, wantErr: "1: not.hcp: min 9 is greater than max 0"},
 		{name: "auction with an invalid element", src: `auction: [1H, Foo]`, wantErr: `1: auction: "Foo" is neither a call nor a wildcard (Any, Any*, Pass*)`},
 		{
 			name:    "auction element on its own line",
