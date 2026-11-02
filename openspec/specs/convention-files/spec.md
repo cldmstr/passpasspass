@@ -32,17 +32,59 @@ system. In production the root is the embedded data sub-rooted at `data/`; tests
 - **THEN** loading fails with an error naming the sub-convention
 
 ### Requirement: Conditions syntax
-`conditions` SHALL accept either a sequence, treated as an implicit `all`, or a mapping holding a
-single condition key such as `all` or `any`.
+`conditions` SHALL accept either a sequence or a mapping, and so SHALL every nested condition. A
+sequence SHALL pass when every item passes. A mapping SHALL pass when the condition of every key in
+it passes; each key SHALL be read as its own condition, whatever other keys the mapping holds. An
+empty sequence or an empty mapping SHALL be a load error.
 
 #### Scenario: Sequence form
 - **WHEN** a convention lists `- hcp: [11, 17]` and `- rule_of_20: true` as a sequence
 - **THEN** both conditions must pass for the convention to match
 
+#### Scenario: Several keys in one mapping
+- **WHEN** a convention's conditions are the mapping `{hcp: [0, 10], suit_length: {spades: [6, 13]}}` and the hand holds 4 HCP and 3 spades
+- **THEN** the convention does not match, because the spade condition fails
+
+#### Scenario: Several keys inside a combinator
+- **WHEN** a condition is `any` of `{hcp: [6, 10], suit_length: {hearts: [6, 13]}}` and `{hcp: [6, 10], suit_length: {spades: [6, 13]}}`, and the hand holds 8 HCP and 6 spades
+- **THEN** the condition passes
+
 ### Requirement: Load errors
-Loading SHALL fail with an error for an unreadable or unparsable file, an invalid bid string, an
-unknown suit name, a range without exactly two values, or an empty condition node.
+Loading SHALL fail with an error for:
+
+- an unreadable, unparsable or empty file;
+- an unknown key in a card file, a sub-convention file, a convention entry or a condition;
+- a key that appears twice in the same mapping, including a suit in `suit_length`;
+- a convention entry without `bid` or without `conditions`;
+- an invalid bid string, in `bid` or in a condition;
+- an empty condition: an empty mapping, an empty sequence, or an empty `all` or `any`;
+- a condition value of the wrong shape or outside its limits, as defined by bidding-conditions.
+
+Every error SHALL start with the path of the file (card or sub-convention) and the line of the
+offending key or value, written `file:line:`. An error inside a convention SHALL then name the
+convention's bid, and an error inside nested conditions SHALL name the keys leading to the
+offending one, joined with dots.
 
 #### Scenario: Invalid bid
 - **WHEN** a convention has `bid: 9Z`
 - **THEN** loading fails with an error naming the bid
+
+#### Scenario: Misspelt condition key
+- **WHEN** a condition mapping holds `hcp: [0, 10]` and `suit_lenght: {spades: [6, 13]}`
+- **THEN** loading fails with an error naming `suit_lenght` and its line
+
+#### Scenario: Misspelt convention key
+- **WHEN** a convention entry has `condtions:` instead of `conditions:`
+- **THEN** loading fails with an error naming `condtions`
+
+#### Scenario: Repeated key
+- **WHEN** a condition mapping holds `hcp: [10, 12]` and, below it, `hcp: [15, 17]`
+- **THEN** loading fails with an error naming `hcp` and the line of the second key
+
+#### Scenario: Empty conditions
+- **WHEN** a convention has `conditions: []`
+- **THEN** loading fails
+
+#### Scenario: Error location
+- **WHEN** the sub-convention `baron` has `suit_length: {hearts: [0, 14]}` inside `all` and `any` in its `2S` convention, with `hearts` on line 8
+- **THEN** the error reads `conventions/baron.yaml:8: bid 2S: all.any.suit_length.hearts: [0, 14] is outside 0 to 13`

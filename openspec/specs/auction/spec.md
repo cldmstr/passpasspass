@@ -63,8 +63,7 @@ SHALL leave the range unchanged.
 ### Requirement: Partnership evaluation
 The partnership evaluation SHALL combine the seat's own hand with partner's inferred range: the
 combined HCP range is own HCP plus partner's minimum and maximum, and the fit in each suit is own
-length plus partner's minimum and maximum length. The better major SHALL be the major with the
-higher combined maximum (spades on a tie), and likewise the better minor (diamonds on a tie).
+length plus partner's minimum and maximum length.
 
 #### Scenario: Opposite a 1NT opening
 - **WHEN** the seat holds 10 HCP and 3 hearts, and partner is inferred at 15–17 HCP with 0–13 hearts

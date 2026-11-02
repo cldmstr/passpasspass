@@ -37,5 +37,5 @@
 - [x] 6.5 All built-in data loads and every existing round-trip test passes unchanged
 
 ## 7. Documentation and archive
-- [ ] 7.1 Update the condition syntax and load errors in `openspec/project.md`, if described there
-- [ ] 7.2 After merge, apply the spec deltas to `openspec/specs/` and move this change to `openspec/changes/archive/`
+- [x] 7.1 Update the condition syntax and load errors in `openspec/project.md`, if described there
+- [x] 7.2 After merge, apply the spec deltas to `openspec/specs/` and move this change to `openspec/changes/archive/`

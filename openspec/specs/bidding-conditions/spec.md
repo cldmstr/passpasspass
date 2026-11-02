@@ -35,12 +35,50 @@ at least 20.
 
 ### Requirement: Suit length condition
 `suit_length: {<suit>: [min, max], ...}` SHALL pass when, for every listed suit, the bidder holds
-between `min` and `max` cards inclusive. Unlisted suits SHALL be unconstrained. An unknown suit or
-a range without exactly two values SHALL be a load error.
+between `min` and `max` cards inclusive. Unlisted suits SHALL be unconstrained. A suit SHALL be
+clubs, diamonds, hearts or spades, in any spelling accepted for suits; notrump or an unknown suit
+SHALL be a load error. Ranges SHALL follow the range values requirement.
 
 #### Scenario: Six-card heart suit
 - **WHEN** the condition is `suit_length: {hearts: [6, 13]}` and the hand holds 6 hearts
 - **THEN** the condition passes
+
+#### Scenario: Notrump is not a suit
+- **WHEN** the condition is `suit_length: {NT: [1, 2]}`
+- **THEN** loading fails
+
+### Requirement: Range values
+Every condition whose value is a range SHALL take exactly two integers `[min, max]` with
+`min ≤ max`, both within the limits of what the condition measures:
+
+- HCP of one hand or of a partnership (`hcp`, `partnership_hcp`): 0–40;
+- length of one suit in one hand (`suit_length`): 0–13.
+
+Any other value SHALL be a load error.
+
+#### Scenario: One value
+- **WHEN** a condition is `hcp: [5]`
+- **THEN** loading fails
+
+#### Scenario: Reversed range
+- **WHEN** a condition is `hcp: [12, 10]`
+- **THEN** loading fails
+
+#### Scenario: Out of limits
+- **WHEN** a condition is `suit_length: {hearts: [0, 14]}`
+- **THEN** loading fails
+
+#### Scenario: No upper limit
+- **WHEN** a condition is `hcp: [27, 40]`
+- **THEN** loading succeeds and the condition passes for a hand with 30 HCP
+
+### Requirement: Flag values
+`balanced`, `rule_of_20` and `no_prior_bids` SHALL accept only the value `true`. Any other value,
+including `false`, SHALL be a load error stating that only `true` is accepted.
+
+#### Scenario: False flag
+- **WHEN** a condition is `balanced: false`
+- **THEN** loading fails with an error stating that only `true` is accepted
 
 ### Requirement: Combinators
 `all: [...]` SHALL pass when every child passes. `any: [...]` SHALL pass when at least one child
@@ -62,13 +100,17 @@ passes. Combinators SHALL nest.
 - **THEN** the condition fails
 
 ### Requirement: Seat bid conditions
-`partner_bid`, `rho_bid` and `lho_bid` SHALL each pass when the most recent call by the bidder's
-partner, right-hand opponent or left-hand opponent respectively equals the given bid. A seat that
-has not yet called SHALL count as having passed.
+`partner_bid` SHALL pass when the most recent call by the bidder's partner equals the given bid.
+A partner who has not yet called SHALL count as having passed. The given bid SHALL be parsed when
+the file is loaded, and an invalid bid SHALL be a load error.
 
 #### Scenario: Partner opened 1NT
 - **WHEN** the condition is `partner_bid: "1NT"` and partner's last call was `1NT`
 - **THEN** the condition passes
+
+#### Scenario: Invalid bid
+- **WHEN** the condition is `partner_bid: "1N"`
+- **THEN** loading fails with an error naming `1N`
 
 ### Requirement: Partnership HCP condition
 `partnership_hcp: [min, max]` SHALL pass when the inferred combined HCP range of the bidder and
@@ -82,21 +124,3 @@ within `min`..`max`.
 #### Scenario: Range not contained
 - **WHEN** the bidder has 8 HCP, partner is inferred at 15–17, and the condition is `partnership_hcp: [25, 40]`
 - **THEN** the condition fails
-
-### Requirement: Suit fit conditions
-`heart_fit` and `spade_fit` SHALL pass when the combined card range in that suit (bidder's length
-plus partner's inferred minimum and maximum length) lies entirely within `[min, max]`.
-`major_fit` SHALL apply the same test to the better major, and `minor_fit` to the better minor,
-where the better suit is the one with the higher combined maximum (spades or diamonds on a tie).
-
-#### Scenario: Known eight-card heart fit
-- **WHEN** the bidder holds 3 hearts, partner is inferred at 5–13 hearts, and the condition is `heart_fit: [8, 16]`
-- **THEN** the condition passes
-
-### Requirement: Opponent strength conditions
-`lho_min_hcp: n` and `rho_min_hcp: n` SHALL pass when the left-hand or right-hand opponent's
-inferred minimum HCP is at least `n`.
-
-#### Scenario: Opponent opened
-- **WHEN** RHO is inferred at 11–17 HCP and the condition is `rho_min_hcp: 11`
-- **THEN** the condition passes

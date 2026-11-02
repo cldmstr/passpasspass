@@ -27,6 +27,9 @@ convention card, then prints the deal, the bidding and the final contract.
   internally. All dependencies are passed in as parameters.
 - Bidding rules are data, not code. Go code provides condition primitives; YAML files compose
   them into conventions.
+- Each condition key has one node type in `condition.go` and one parser registered in
+  `conditionParsers` (`condition_parser.go`). The parser validates the key's value and reports
+  errors at the line of the offending key; adding a key means adding both and the table entry.
 - Conventions are evaluated first-match in sheet order, so more specific conventions must come
   before more general ones.
 - `Table` is a thin wiring layer; auction logic lives in `Auction`.
@@ -40,7 +43,8 @@ Main types and their files:
 | `Dealer` | `dealer.go` | Shuffles and deals four hands |
 | `Bid`, `Convention`, `ConventionSheet` | `convention.go` | Bids and first-match evaluation |
 | `Condition` constructors | `condition.go` | Predicates over an `AuctionContext` |
-| `Loader` | `loader.go` | YAML card and sub-convention loading |
+| `parseCondition`, `conditionParsers` | `condition_parser.go` | Parses and validates YAML conditions |
+| `Loader` | `loader.go` | YAML card and sub-convention loading, `file:line` load errors |
 | `Auction`, `AuctionContext`, `HandRange` | `auction.go` | Bidding loop and hand inference |
 | `Table` | `table.go` | Wires dealer, sheet and auction |
 
@@ -51,10 +55,12 @@ Main types and their files:
 - `revive`'s `exported` rule enforces doc comments on exported identifiers.
 
 ### Testing Strategy
-- All tests live in the external package `passpasspass_test`.
+- All tests live in the external package `passpasspass_test`. `export_test.go` exposes the few
+  unexported functions they need, such as `parseCondition`.
 - Assertions use `github.com/matryer/is`.
 - Loader tests write temporary YAML with `writeTempFile` into `t.TempDir()` and pass
-  `os.DirFS(dir)` to `NewLoader`.
+  `os.DirFS(dir)` to `NewLoader`. Load-error tests list their files in an `fstest.MapFS` and
+  compare the full error text, file and line included.
 - Round-trip tests load the embedded cards and assert the bid chosen for a given hand. Comments
   on test hands show how the HCP total adds up, e.g. `// A♠️(4)+Q♠️(2) = 6 HCP`.
 - Boundary values of every range (lowest, highest, one outside) get their own test case.
