@@ -104,9 +104,10 @@ func NewAuction(dealer Direction, cs *ConventionSheet, hands []*Hand) *Auction {
 
 // Run executes the full bidding sequence and populates Bids, Contract, and Declarer.
 func (a *Auction) Run() {
-	var handRanges [4]HandRange
-	for i := range 4 {
-		handRanges[i] = DefaultHandRange()
+	interp := NewSheetInterpreter() // injected through AuctionState in task 6.4
+	var shown [4]HandModel
+	for i := range shown {
+		shown[i] = DefaultHandModel()
 	}
 
 	consecutivePasses := 0
@@ -121,10 +122,10 @@ func (a *Auction) Run() {
 			SelfHand:    h,
 			Position:    pos,
 			History:     a.Bids,
-			Partner:     handRanges[partner],
-			LHO:         handRanges[lhoOf(pos)],
-			RHO:         handRanges[rhoOf(pos)],
-			Partnership: NewPartnershipEval(h, handRanges[partner]),
+			Partner:     boundsOf(shown[partner]),
+			LHO:         boundsOf(shown[lhoOf(pos)]),
+			RHO:         boundsOf(shown[rhoOf(pos)]),
+			Partnership: NewPartnershipEval(h, boundsOf(shown[partner])),
 		}
 
 		bid := a.cs.Bid(ctx)
@@ -134,6 +135,8 @@ func (a *Auction) Run() {
 			bid = Pass
 		}
 
+		read := interp.Read(a.cs, &CallContext{Caller: pos, History: a.Bids, Shown: shown}, bid)
+		shown[pos] = shown[pos].Intersect(read)
 		a.Bids = append(a.Bids, BidAction{Direction: pos, Bid: bid})
 
 		if bid == Pass {
@@ -144,7 +147,6 @@ func (a *Auction) Run() {
 			a.Declarer = pos
 		}
 
-		inferAndUpdate(&handRanges, a.cs, pos, bid)
 		current = (current + 1) % 4
 
 		if (a.Contract == nil && consecutivePasses == 4) ||
@@ -193,53 +195,10 @@ func (a *Auction) String() string {
 	return sb.String()
 }
 
-func inferAndUpdate(handRanges *[4]HandRange, cs *ConventionSheet, pos Direction, bid *Bid) {
-	if bid == Pass {
-		return
+// boundsOf returns the bounds of m, or the unconstrained range when m is empty.
+func boundsOf(m HandModel) HandRange {
+	if b, ok := m.Bounds(); ok {
+		return b
 	}
-	for _, conv := range cs.sheet {
-		if conv.Bid != nil && conv.Bid.Value() == bid.Value() {
-			handRanges[pos] = intersectRanges(handRanges[pos], extractBounds(conv.conditions...))
-			return
-		}
-	}
-}
-
-func extractBounds(conditions ...Condition) HandRange {
-	r := DefaultHandRange()
-	for _, c := range conditions {
-		applyBounds(c, &r)
-	}
-	return r
-}
-
-// applyBounds narrows r by the HCP and suit-length ranges that c requires. An `any` narrows r
-// by the union of its children's ranges; conditions without a range leave r unchanged.
-func applyBounds(c Condition, r *HandRange) {
-	switch c := c.(type) {
-	case hcpCondition:
-		b := DefaultHandRange()
-		b.MinHCP, b.MaxHCP = c.lo, c.hi
-		*r = intersectRanges(*r, b)
-
-	case suitLengthCondition:
-		b := DefaultHandRange()
-		b.SuitLength = c.r
-		*r = intersectRanges(*r, b)
-
-	case allCondition:
-		for _, child := range c.children {
-			applyBounds(child, r)
-		}
-
-	case anyCondition:
-		if len(c.children) == 0 {
-			return
-		}
-		u := extractBounds(c.children[0])
-		for _, child := range c.children[1:] {
-			u = unionRanges(u, extractBounds(child))
-		}
-		*r = intersectRanges(*r, u)
-	}
+	return DefaultHandRange()
 }

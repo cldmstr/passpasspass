@@ -83,7 +83,8 @@ convention's model is derived from its conditions:
   laws; and leaves the model unconstrained for `balanced`, `rule_of_20`, conditions on other
   players' models, and partnership conditions.
 
-A Pass SHALL leave the model unchanged.
+A Pass SHALL leave the model unchanged, and so SHALL a call that no convention in the caller's
+sheet explains in that auction.
 
 #### Scenario: Strong notrump opening
 - **WHEN** North opens `1NT` with a sheet whose `1NT` opening requires `balanced: true` and `hcp: [15, 17]`
@@ -96,6 +97,10 @@ A Pass SHALL leave the model unchanged.
 #### Scenario: Multi opening keeps alternatives
 - **WHEN** a seat opens a Multi `2♦️`
 - **THEN** its model holds four alternatives: 23–24 balanced, 6–10 with 6+ hearts, 6–10 with 6+ spades, and 27+
+
+#### Scenario: Unexplained call
+- **WHEN** North has opened `1♣️` and East bids `1NT`, which East's sheet only allows when nobody has opened
+- **THEN** East's model is unchanged
 
 #### Scenario: Negated HCP range
 - **WHEN** the only convention for a call requires `not: {hcp: [0, 9]}`

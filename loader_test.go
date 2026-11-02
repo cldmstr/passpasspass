@@ -283,6 +283,22 @@ conventions:
 			wantErr: `card.yaml:5: bid 2H: auction: "Foo" is neither a call nor a wildcard (Any, Any*, Pass*)`,
 		},
 		{
+			name: "too many alternatives",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - bid: 1C
+    conditions:
+      - any: [{hcp: [0, 5]}, {hcp: [20, 25]}]
+      - any: [{hcp: [0, 6]}, {hcp: [20, 26]}]
+      - any: [{hcp: [0, 7]}, {hcp: [20, 27]}]
+      - any: [{hcp: [0, 8]}, {hcp: [20, 28]}]
+      - any: [{hcp: [0, 9]}, {hcp: [20, 29]}]
+      - any: [{hcp: [0, 10]}, {hcp: [20, 30]}]
+      - any: [{hcp: [0, 11]}, {hcp: [20, 31]}]
+`},
+			wantErr: `card.yaml:5: bid 1C: conditions can show more than 64 alternatives; split them into several conventions`,
+		},
+		{
 			name: "key repeated in a convention",
 			files: map[string]string{"card.yaml": `name: test
 conventions:
@@ -414,6 +430,25 @@ conventions:
 			is.Equal(err.Error(), tc.wantErr)
 		})
 	}
+}
+
+// TestLoader_LoadCard_MaxAlternatives loads a convention at the cap: six `any` of two under one
+// `all` can show 2⁶ = 64 alternatives.
+func TestLoader_LoadCard_MaxAlternatives(t *testing.T) {
+	is := is.New(t)
+	fsys := fstest.MapFS{"card.yaml": &fstest.MapFile{Data: []byte(`name: test
+conventions:
+  - bid: 1C
+    conditions:
+      - any: [{hcp: [0, 5]}, {hcp: [20, 25]}]
+      - any: [{hcp: [0, 6]}, {hcp: [20, 26]}]
+      - any: [{hcp: [0, 7]}, {hcp: [20, 27]}]
+      - any: [{hcp: [0, 8]}, {hcp: [20, 28]}]
+      - any: [{hcp: [0, 9]}, {hcp: [20, 29]}]
+      - any: [{hcp: [0, 10]}, {hcp: [20, 30]}]
+`)}}
+	_, err := ppp.NewLoader(fsys).LoadCard("card.yaml")
+	is.NoErr(err)
 }
 
 func TestLoader_RoundTrip_TwoOverOne(t *testing.T) {

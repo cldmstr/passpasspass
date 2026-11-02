@@ -108,8 +108,19 @@ contributes nothing.
 
 ### D4: Calls are read from condition nodes with three-valued guards
 Conditions are typed nodes (`refactor-condition-nodes`). The `Condition` interface gains a second
-method next to `Eval`, `Shown`, which returns the `HandModel` a node allows for one call in one
-auction. Every node type implements it:
+method next to `Eval`:
+
+```go
+// Shown returns the model of the hands for which the condition comes out as holds, for a call
+// made in ctx.
+Shown(ctx *CallContext, holds bool) HandModel
+```
+
+`CallContext` holds what the whole table knows when the call is made: the caller, the history
+before the call and every player's shown model (later also the facts), never the caller's hand.
+Asking for `holds == false` gives the negated model, so `not` only flips the flag for its child,
+and De Morgan's laws (D9) follow from `all` and `any` answering both questions. Every node type
+implements it:
 
 | Node | Result |
 |------|--------|
@@ -127,7 +138,16 @@ whose bid equals the call and whose model is not empty. Taking every candidate, 
 first, avoids claiming more than is known when an earlier convention's guards held but its hand
 conditions might not have.
 
-`extractBounds`, `applyBounds` and `inferAndUpdate` are replaced. The
+A third, unexported method, `maxCases(holds)`, bounds the alternatives `Shown` can return in any
+auction: a sum for alternatives side by side, a product for intersections. The loader rejects a
+convention above the cap of risk 1 (64), with the line of its `conditions`.
+
+A call that no convention explains, or whose conventions all fail their guards, shows nothing:
+the interpreter returns the unconstrained model rather than an empty one.
+
+`extractBounds`, `applyBounds` and `inferAndUpdate` are replaced. Until `AuctionState` exists
+(task 6.4), `Run` creates the interpreter itself and passes each model's `Bounds()` to the
+`HandRange` fields of `AuctionContext`. The
 interpreter is an interface injected into `AuctionState`, and takes the caller's sheet as an
 argument so that partnerships can later play different cards.
 

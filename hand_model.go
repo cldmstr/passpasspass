@@ -27,6 +27,43 @@ func DefaultHandModel() HandModel {
 	return HandModel{Cases: []HandRange{DefaultHandRange()}}
 }
 
+// modelOf returns the model with the single alternative r, tightened.
+func modelOf(r HandRange) HandModel {
+	return HandModel{Cases: []HandRange{r}}.Tighten()
+}
+
+// guardModel returns the model of a condition that does not depend on the hand: every hand when
+// it comes out as wanted, no hand otherwise.
+func guardModel(asWanted bool) HandModel {
+	if asWanted {
+		return DefaultHandModel()
+	}
+	return HandModel{}
+}
+
+// unionModels returns a model holding the alternatives of every model in models.
+func unionModels(models ...HandModel) HandModel {
+	var cases []HandRange
+	for _, m := range models {
+		cases = append(cases, m.Cases...)
+	}
+	return HandModel{Cases: cases}
+}
+
+// hcpRange returns the unconstrained range narrowed to lo–hi HCP.
+func hcpRange(lo, hi int) HandRange {
+	r := DefaultHandRange()
+	r.MinHCP, r.MaxHCP = lo, hi
+	return r
+}
+
+// suitRange returns the unconstrained range narrowed to lo–hi cards in suit s.
+func suitRange(s, lo, hi int) HandRange {
+	r := DefaultHandRange()
+	r.SuitLength[s] = SuitRange{Min: lo, Max: hi}
+	return r
+}
+
 // IsEmpty reports whether no hand fits the model.
 func (m HandModel) IsEmpty() bool {
 	return len(m.Cases) == 0

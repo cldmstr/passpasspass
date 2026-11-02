@@ -21,15 +21,15 @@
 - [x] 4.3 Tests: intersecting disjoint alternatives yields an empty model; 6+ hearts and 6+ spades tightens both minors to 0–1; `Bounds` covers all alternatives
 
 ## 5. Reading calls in context
-- [ ] 5.1 Add `Shown` to the `Condition` interface and implement it on every node type: the `HandModel` a node allows for a given history prefix and the facts before the call, following the table in design D4 (three-valued guards, `any` → alternatives, `all` → intersection)
-- [ ] 5.2 `balanced` contributes 2–5 cards in every suit
-- [ ] 5.3 Translate `partnership_hcp` and `fit` into bounds on the caller's own hand, using partner's shown model at the time of the call
-- [ ] 5.4 Implement `Shown` on the `not` node as in design D9: flip auction-only guards; complement `hcp` and `suit_length` boxes; push through `all` and `any` with De Morgan's laws; approximated nodes give one unconstrained alternative
-- [ ] 5.5 Add the `Interpreter` interface and the default implementation: the union over every convention whose bid equals the call and whose model is not empty
-- [ ] 5.6 Cap alternatives per convention (design risk 1, including alternatives added by `not`) and fail loading above the cap
-- [ ] 5.7 Remove `inferAndUpdate`, `extractBounds` and `applyBounds` (`HandModel` keeps `intersectRanges` and `unionRanges`)
-- [ ] 5.8 Tests on the Colin card: `1NT` opening shows 15–17 and 2–5 in every suit; a `2♦️` response to `1NT` shows 5+ hearts, not Multi; a Multi `2♦️` opening shows four alternatives; a Pass leaves the model unchanged
-- [ ] 5.9 Tests for `not`: `not: {hcp: [0, 9]}` shows 10+; `not: {suit_length: {hearts: [4, 13]}}` shows 0–3 hearts; `not: {balanced: true}` leaves the model unconstrained; a negated auction guard that holds removes the convention
+- [x] 5.1 Add `Shown` to the `Condition` interface and implement it on every node type: the `HandModel` a node allows for a given history prefix and the facts before the call, following the table in design D4 (three-valued guards, `any` → alternatives, `all` → intersection)
+- [x] 5.2 `balanced` contributes 2–5 cards in every suit
+- [x] 5.3 Translate `partnership_hcp` into bounds on the caller's own hand, using partner's shown model at the time of the call (`fit` follows in 8.1)
+- [x] 5.4 Implement `Shown` on the `not` node as in design D9: flip auction-only guards; complement `hcp` and `suit_length` boxes; push through `all` and `any` with De Morgan's laws; approximated nodes give one unconstrained alternative
+- [x] 5.5 Add the `Interpreter` interface and the default implementation: the union over every convention whose bid equals the call and whose model is not empty
+- [x] 5.6 Cap alternatives per convention (design risk 1, including alternatives added by `not`) and fail loading above the cap
+- [x] 5.7 Remove `inferAndUpdate`, `extractBounds` and `applyBounds` (`HandModel` keeps `intersectRanges` and `unionRanges`)
+- [x] 5.8 Tests on the Colin card: `1NT` opening shows 15–17 and 2–5 in every suit; a `2♦️` response to `1NT` shows 5+ hearts, not Multi; a Multi `2♦️` opening shows four alternatives; a Pass leaves the model unchanged
+- [x] 5.9 Tests for `not`: `not: {hcp: [0, 9]}` shows 10+; `not: {suit_length: {hearts: [4, 13]}}` shows 0–3 hearts; `not: {balanced: true}` leaves the model unconstrained; a negated auction guard that holds removes the convention
 
 ## 6. Auction state and per-player view
 - [ ] 6.1 Add `AuctionState` (history, `[4]HandModel` shown models, facts per partnership, interpreter, sheets by seat) with `Record(d, bid)`; constructor takes all dependencies
@@ -46,7 +46,7 @@
 - [ ] 7.5 Tests with a temporary card: a rule guarded by `agreed: hearts` fires after `1♥️–2♥️`, `1♥️–3♥️` and `1♥️–2NT` but not after `1♥️–1♠️`; a later agreement replaces an earlier one; facts of one partnership are not seen as the other's; `forced` holds for partner's next call after `one_round` and not the call after; `forced` holds after a game force until game is bid; two conventions that explain the same call with different facts record neither
 
 ## 8. Conditions on partner's model and legal selection
-- [ ] 8.1 Add `partner_hcp: [min, max]`, `partner_suit_length: {suit: [min, max]}` and `fit: {suit: [min, max]}` (conditions and parsers; ranges follow the range-value limits)
+- [ ] 8.1 Add `partner_hcp: [min, max]`, `partner_suit_length: {suit: [min, max]}` and `fit: {suit: [min, max]}` (conditions, parsers and `Shown` as in design D4, with `fit` translated into bounds on the caller's own suit like `partnership_hcp`; ranges follow the range-value limits)
 - [ ] 8.2 Apply the all-alternatives rule (design D5) to the new keys and to `partnership_hcp`
 - [ ] 8.3 Add `Contract` to `AuctionContext`, set by the auction (nil before the opening); `ConventionSheet.Bid` skips conventions whose bid is neither Pass nor higher than `ctx.Contract`; remove the replace-with-Pass step from `Run`
 - [ ] 8.4 Tests: each new key at its boundaries; `fit: {hearts: [8, 14]}` and `fit: {spades: [7, 13]}` fail to load; opposite a Multi `2♦️` neither `fit: {hearts: [8, 13]}` nor `fit: {spades: [8, 13]}` holds; an illegal first match falls through to the next convention; an explicit `Pass` convention stops the search

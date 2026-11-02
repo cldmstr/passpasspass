@@ -61,6 +61,16 @@ func NewConvention(bid *Bid, conditions ...Condition) *Convention {
 	return &Convention{Bid: bid, conditions: conditions}
 }
 
+// maxConventionCases caps the alternatives one convention can show, so that `all` over several
+// `any` nodes cannot multiply them without limit. The loader rejects conventions above it.
+const maxConventionCases = 64
+
+// Shown returns the model of the hands with which the convention's call could be made in ctx:
+// the hands for which every condition holds.
+func (c *Convention) Shown(ctx *CallContext) HandModel {
+	return intersectShown(ctx, true, c.conditions)
+}
+
 // NextBid reports whether every condition passes in ctx and, if so, returns the bid.
 func (c *Convention) NextBid(ctx *AuctionContext) (bool, *Bid) {
 	for _, cond := range c.conditions {

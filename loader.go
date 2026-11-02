@@ -166,6 +166,10 @@ func parseConventionEntry(n *yaml.Node) (*Convention, error) {
 	if err != nil {
 		return nil, err
 	}
+	if condition.maxCases(true) > maxConventionCases {
+		return nil, errorAt(conditionsNode, fmt.Errorf(
+			"conditions can show more than %d alternatives; split them into several conventions", maxConventionCases))
+	}
 	return NewConvention(bid, condition), nil
 }
 
