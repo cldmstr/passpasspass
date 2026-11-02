@@ -102,7 +102,7 @@ func TestAuctionContext_String(t *testing.T) {
 		RHO:         ppp.DefaultHandRange(),
 		Partnership: ppp.NewPartnershipEval(hand, partner),
 	}
-	is.Equal(ctx.String(), `Hand         16 HCP [4,3,3,3]
+	is.Equal(ctx.String(), `Hand         16 HCP [3,3,3,4]
 Auction      2❤️ Pass
 Partner       6–10 HCP  ♠️ 0–13  ❤️ 6–13  ♦️ 0–13  ♣️ 0–13
 LHO          nothing shown

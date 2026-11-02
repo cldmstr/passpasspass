@@ -141,3 +141,24 @@ func TestHandDistributionUnhappy(t *testing.T) {
 		})
 	}
 }
+
+func TestHand_String(t *testing.T) {
+	t.Run("spades first, clubs last", func(t *testing.T) {
+		is := is.New(t)
+		hand := mustHand([]string{"A♣️", "2♣️", "K♦️", "3♦️", "Q❤️", "4❤️", "5❤️", "J♠️", "6♠️", "7♠️", "8♠️", "9♠️", "10♠️"})
+		is.Equal(hand.String(), "6♠️,7♠️,8♠️,9♠️,10♠️,J♠️\n4❤️,5❤️,Q❤️\n3♦️,K♦️\n2♣️,A♣️\n")
+	})
+
+	t.Run("a void in clubs is the last line", func(t *testing.T) {
+		is := is.New(t)
+		hand := mustHand([]string{"2♦️", "3♦️", "4♦️", "5♦️", "2❤️", "3❤️", "4❤️", "5❤️", "2♠️", "3♠️", "4♠️", "5♠️", "6♠️"})
+		is.Equal(hand.String(), "2♠️,3♠️,4♠️,5♠️,6♠️\n2❤️,3❤️,4❤️,5❤️\n2♦️,3♦️,4♦️,5♦️\n\n")
+	})
+}
+
+func TestDistribution_String(t *testing.T) {
+	is := is.New(t)
+	hand := mustHand([]string{"2♣️", "2♦️", "3♦️", "2❤️", "3❤️", "4❤️", "5❤️", "2♠️", "3♠️", "4♠️", "5♠️", "6♠️", "7♠️"})
+	is.Equal(hand.Distribution(), ppp.NewDistribution(1, 2, 4, 6)) // indexed clubs first
+	is.Equal(hand.Distribution().String(), "[6,4,2,1]")            // printed spades first
+}

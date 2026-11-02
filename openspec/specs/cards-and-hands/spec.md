@@ -12,7 +12,7 @@ and every per-suit array SHALL be indexed in this order.
 
 #### Scenario: Distribution indexing
 - **WHEN** a hand holds 1 club, 2 diamonds, 4 hearts and 6 spades
-- **THEN** its distribution is `[1,2,4,6]`
+- **THEN** its distribution, indexed by suit, is `[1,2,4,6]`
 
 ### Requirement: Suit parsing
 The system SHALL parse a suit from its emoji (`♣️ ♦️ ❤️ ♠️`), its letter (`C D H S NT`) or its
@@ -59,9 +59,18 @@ construction SHALL fail with an error.
 - **THEN** an error is returned
 
 ### Requirement: Hand display
-A hand SHALL print one line per suit in suit order (clubs first), with the cards in ascending rank
-separated by commas and an empty line for a void.
+A hand SHALL print one line per suit from spades down to clubs, with the cards in ascending rank
+separated by commas and an empty line for a void. Wherever a hand's shape is printed, its suit
+lengths SHALL be listed in the same order, spades first.
+
+#### Scenario: Spades first
+- **WHEN** a hand with cards in every suit is printed
+- **THEN** the lines list spades, hearts, diamonds and clubs, in that order
 
 #### Scenario: Void in clubs
 - **WHEN** a hand with no clubs is printed
-- **THEN** the first line is empty and the next three lines list diamonds, hearts and spades
+- **THEN** the first three lines list spades, hearts and diamonds, and the last line is empty
+
+#### Scenario: Shape
+- **WHEN** a hand holds 1 club, 2 diamonds, 4 hearts and 6 spades
+- **THEN** its shape prints as `[6,4,2,1]`

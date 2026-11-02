@@ -23,13 +23,14 @@ func NewDistribution(clubs, diamonds, hearts, spades int) Distribution {
 	return []int{clubs, diamonds, hearts, spades}
 }
 
+// String prints the suit lengths from spades down to clubs, the order hands are printed in.
 func (d Distribution) String() string {
 	if len(d) != DistributionLength {
 		return "[invalid distribution]"
 	}
-	distStrings := make([]string, DistributionLength)
-	for i, s := range d {
-		distStrings[i] = strconv.Itoa(s)
+	distStrings := make([]string, 0, DistributionLength)
+	for s := Spades; s >= Clubs; s-- {
+		distStrings = append(distStrings, strconv.Itoa(d[s]))
 	}
 
 	return fmt.Sprintf("[%s]", strings.Join(distStrings, ","))
@@ -120,24 +121,18 @@ func (h *Hand) Validate() error {
 	return nil
 }
 
+// String prints one line per suit from spades down to clubs, the cards in ascending rank
+// separated by commas, and an empty line for a void.
 func (h *Hand) String() string {
-	result := ""
-	lastOffset := 0
-	for _, dist := range h.Distribution() {
-		offset := lastOffset + dist
-		for i, card := range h.cards[lastOffset:offset] {
-			if i < offset {
-				result += card.String()
-			}
-			if i < dist-1 {
-				result += ","
-			}
-		}
-		lastOffset = offset
-		result += "\n"
+	var suits [4][]string
+	for _, c := range h.cards {
+		suits[c.suit] = append(suits[c.suit], c.String())
 	}
-
-	return result
+	var sb strings.Builder
+	for s := Spades; s >= Clubs; s-- {
+		sb.WriteString(strings.Join(suits[s], ",") + "\n")
+	}
+	return sb.String()
 }
 
 // Distribution returns the hand's suit lengths in suit order.
