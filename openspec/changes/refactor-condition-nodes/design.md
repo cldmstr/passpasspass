@@ -98,14 +98,24 @@ key, so `false` and any non-boolean value are load errors that state that only `
 accepted. When `add-partner-aware-responses` adds `not`, the message also suggests `not`.
 
 ### D5: Strict loading at every level
-Card files, sub-convention files and convention entries are decoded with unknown keys rejected
-(`yaml.Decoder.KnownFields(true)` for the file structs; the parser table for conditions). A
-convention entry needs `bid` and a non-empty `conditions`. Every load error names the file (card
-or sub-convention), the convention's bid where there is one, and the line of the offending key:
+Card files, sub-convention files, convention entries and conditions reject unknown and repeated
+keys. One helper, `checkKeys`, checks every level against its list of keys: the parser table for
+conditions, fixed lists for the rest. `yaml.Decoder.KnownFields(true)` was rejected: its errors
+span several lines and name Go struct types, and `yaml.Node.Decode` cannot use it, so convention
+entries and conditions would need their own check anyway. A convention entry needs `bid` and a
+non-empty `conditions`. Every load error names the file (card or sub-convention), the convention's bid
+where there is one, and the line of the offending key. It starts with `file:line`, as compiler
+errors do, so editors and terminals can jump to it; the bid and the keys leading to the offending
+one follow, the keys joined with dots so they stand apart from the message:
 
 ```
-sub-convention "baron": bid "2S": line 8: suit_lenght: unknown condition key (known keys: all, any, balanced, ...)
+conventions/baron.yaml:8: bid 2S: suit_lenght: unknown condition key (known keys: all, any, balanced, ...)
+conventions/baron.yaml:12: bid 2S: any.all.suit_length.hearts: [0, 14] is outside 0 to 13
+cards/colin.yaml: include barn: conventions/barn.yaml: file does not exist
 ```
+
+Errors inside nested conditions keep the line of the innermost offending key or value. yaml.v3
+syntax errors are rewritten into the same form.
 
 ### D6: Inference reads parsed nodes until it is replaced
 `Convention` drops its `node conditionNode` field and keeps its parsed `Condition`s. `applyBounds`

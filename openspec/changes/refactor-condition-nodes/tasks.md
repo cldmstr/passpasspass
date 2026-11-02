@@ -25,14 +25,14 @@
 - [x] 4.5 Tests, one per case in the proposal table and per limit: `hcp: [5]`, `hcp: [12, 10]`, `hcp: [0, 41]`, `suit_length: {NT: [1, 2]}`, `suit_length: {hearts: [0, 14]}`, `balanced: false`, `balanced: yes please`, `partner_bid: "1N"`; boundary values that still load (`hcp: [0, 40]`, `suit_length: {spades: [0, 13]}`)
 
 ## 5. Strict files and error messages
-- [ ] 5.1 Decode card and sub-convention files with unknown keys rejected; a convention entry needs `bid` and `conditions`
-- [ ] 5.2 Load errors name the file, the convention's bid and the line of the offending key (design D5)
-- [ ] 5.3 Tests: misspelt `condtions`, `bid` missing, unknown top-level key in a card; error text contains the file, bid and line
+- [x] 5.1 Decode card and sub-convention files with unknown keys rejected; a convention entry needs `bid` and `conditions`
+- [x] 5.2 Load errors name the file, the convention's bid and the line of the offending key (design D5)
+- [x] 5.3 Tests: misspelt `condtions`, `bid` missing, unknown top-level key in a card; error text contains the file, bid and line
 
 ## 6. Switching over and cleaning up
-- [ ] 6.1 `Convention` keeps its parsed `Condition`s and drops `node`; `buildConventions` uses `parseCondition`
+- [ ] 6.1 `Convention` keeps its parsed `Condition`s and drops `node`; `parseConventionEntry` uses `parseCondition` instead of `decodeConditionNode`; loader tests for the "Misspelt condition key", "Empty conditions" and "Error location" scenarios
 - [ ] 6.2 `applyBounds` switches on node types instead of `conditionNode` fields (design D6)
-- [ ] 6.3 Remove `conditionNode`, `buildCondition` and `yamlConvention.UnmarshalYAML`
+- [ ] 6.3 Remove `conditionNode`, `buildCondition` and `decodeConditionNode` (`yamlConvention` and its `UnmarshalYAML` went in 5.1)
 - [ ] 6.4 Remove the `buildCondition` exclusion from `.golangci.yml`; `golangci-lint run ./...` is clean
 - [ ] 6.5 All built-in data loads and every existing round-trip test passes unchanged
 

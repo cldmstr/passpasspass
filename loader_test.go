@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 
 	"github.com/matryer/is"
 
@@ -205,6 +206,159 @@ conventions:
 `)
 	_, err := ppp.NewLoader(os.DirFS(dir)).LoadCard("card.yaml")
 	is.True(err != nil)
+}
+
+func TestLoader_LoadCard_Errors(t *testing.T) {
+	baronCard := "name: test\nincludes:\n  - baron\n"
+
+	tt := []struct {
+		name    string
+		files   map[string]string
+		wantErr string
+	}{
+		{
+			name: "misspelt conditions",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - bid: 1NT
+    condtions:
+      - hcp: [15, 17]
+`},
+			wantErr: `card.yaml:4: bid 1NT: condtions: unknown convention key (known keys: bid, conditions)`,
+		},
+		{
+			name: "bid missing",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - conditions:
+      - hcp: [15, 17]
+`},
+			wantErr: `card.yaml:3: convention has no bid`,
+		},
+		{
+			name: "conditions missing",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - bid: 1NT
+`},
+			wantErr: `card.yaml:3: bid 1NT: convention has no conditions`,
+		},
+		{
+			name: "key repeated in a convention",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - bid: 1NT
+    bid: 2NT
+    conditions:
+      - hcp: [15, 17]
+`},
+			wantErr: `card.yaml:4: bid 1NT: bid: key appears more than once`,
+		},
+		{
+			name: "invalid bid",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - bid: 9Z
+    conditions:
+      - hcp: [15, 17]
+`},
+			wantErr: `card.yaml:3: bid 9Z: invalid bid level in "9Z"`,
+		},
+		{
+			name: "convention is not a mapping",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - 1NT
+`},
+			wantErr: `card.yaml:3: a convention must be a mapping with bid and conditions`,
+		},
+		{
+			name: "conditions are neither a mapping nor a list",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - bid: 1NT
+    conditions: balanced
+`},
+			wantErr: `card.yaml:4: bid 1NT: conditions must be a mapping or a list`,
+		},
+		{
+			name: "unknown top-level key in a card",
+			files: map[string]string{"card.yaml": `name: test
+incldes:
+  - baron
+`},
+			wantErr: `card.yaml:2: incldes: unknown card key (known keys: conventions, includes, name)`,
+		},
+		{
+			name: "YAML syntax error",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - bid: 1C
+    conditions: [hcp: [11, 17]
+`},
+			wantErr: "card.yaml:3: did not find expected ',' or ']'",
+		},
+		{
+			name:    "card is empty",
+			files:   map[string]string{"card.yaml": ""},
+			wantErr: `card.yaml: file is empty`,
+		},
+		{
+			name:    "card is not a mapping",
+			files:   map[string]string{"card.yaml": "- baron\n"},
+			wantErr: `card.yaml:1: must be a mapping`,
+		},
+		{
+			name:    "missing card",
+			files:   map[string]string{},
+			wantErr: `card.yaml: file does not exist`,
+		},
+		{
+			name:    "missing sub-convention",
+			files:   map[string]string{"card.yaml": baronCard},
+			wantErr: `card.yaml: include baron: conventions/baron.yaml: file does not exist`,
+		},
+		{
+			name: "unknown top-level key in a sub-convention",
+			files: map[string]string{
+				"card.yaml": baronCard,
+				"conventions/baron.yaml": `name: baron
+convention:
+  - bid: 2S
+`,
+			},
+			wantErr: `conventions/baron.yaml:2: convention: unknown sub-convention key (known keys: conventions, name)`,
+		},
+		{
+			name: "error inside a sub-convention's convention",
+			files: map[string]string{
+				"card.yaml": baronCard,
+				"conventions/baron.yaml": `name: baron
+conventions:
+  - bid: 2S
+    conditions:
+      all:
+        - partner_bid: "1NT"
+        - hcp: [8, 40]
+    forcing: true
+`,
+			},
+			wantErr: `conventions/baron.yaml:8: bid 2S: forcing: unknown convention key (known keys: bid, conditions)`,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+			fsys := fstest.MapFS{}
+			for name, content := range tc.files {
+				fsys[name] = &fstest.MapFile{Data: []byte(content)}
+			}
+			_, err := ppp.NewLoader(fsys).LoadCard("card.yaml")
+			is.True(err != nil)
+			is.Equal(err.Error(), tc.wantErr)
+		})
+	}
 }
 
 func TestLoader_RoundTrip_TwoOverOne(t *testing.T) {

@@ -1,7 +1,6 @@
 package passpasspass_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/matryer/is"
@@ -149,52 +148,71 @@ func TestParseCondition_Errors(t *testing.T) {
 		{
 			name:    "unknown key",
 			src:     `suit_len: {hearts: [6, 13]}`,
-			wantErr: "suit_len: unknown condition key (known keys: all, any, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
+			wantErr: "1: suit_len: unknown condition key (known keys: all, any, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
 		},
 		{
 			name:    "unknown key next to a known one",
-			src:     `{hcp: [15, 17], balance: true}`,
-			wantErr: "balance: unknown condition key",
+			src:     "hcp: [15, 17]\nbalance: true",
+			wantErr: "2: balance: unknown condition key (known keys: all, any, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
 		},
 		{
 			name:    "unknown key nested in any",
-			src:     `any: [{hcp: [15, 17]}, {hpc: [20, 21]}]`,
-			wantErr: "any: hpc: unknown condition key",
+			src:     "any:\n  - hcp: [15, 17]\n  - hpc: [20, 21]",
+			wantErr: "3: any.hpc: unknown condition key (known keys: all, any, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
 		},
-		{name: "empty conditions", src: `null`, wantErr: "a condition must be a mapping or a list"},
-		{name: "empty mapping", src: `{}`, wantErr: "a condition mapping must not be empty"},
-		{name: "empty list", src: `[]`, wantErr: "a condition list must not be empty"},
-		{name: "empty all", src: `all: []`, wantErr: "all: a condition list must not be empty"},
-		{name: "empty any", src: `any: []`, wantErr: "any: a condition list must not be empty"},
-		{name: "empty mapping inside all", src: `all: [{}]`, wantErr: "all: a condition mapping must not be empty"},
-		{name: "scalar", src: `balanced`, wantErr: "a condition must be a mapping or a list"},
-		{name: "scalar inside a list", src: `[balanced]`, wantErr: "a condition must be a mapping or a list"},
-		{name: "all is not a list", src: `all: {hcp: [15, 17]}`, wantErr: "all: must be a list of conditions"},
-		{name: "any is not a list", src: `any: {hcp: [15, 17]}`, wantErr: "any: must be a list of conditions"},
-		{name: "key repeated in a mapping", src: "hcp: [10, 12]\nhcp: [15, 17]", wantErr: "hcp: condition key appears more than once"},
-		{name: "suit repeated in suit_length", src: `suit_length: {hearts: [6, 13], H: [0, 3]}`, wantErr: `suit "H" appears more than once`},
-		{name: "notrump in suit_length", src: `suit_length: {NT: [1, 2]}`, wantErr: `suit_length: "NT" is not a suit (clubs, diamonds, hearts or spades)`},
-		{name: "invalid partner_bid", src: `partner_bid: "1N"`, wantErr: `partner_bid: invalid bid suit in "1N"`},
-		{name: "hcp with one value", src: `hcp: [5]`, wantErr: "hcp: must be [min, max], got 1 values"},
-		{name: "hcp with three values", src: `hcp: [5, 6, 7]`, wantErr: "hcp: must be [min, max], got 3 values"},
-		{name: "hcp not a list", src: `hcp: 5`, wantErr: "hcp: "},
-		{name: "hcp not integers", src: `hcp: [5, ten]`, wantErr: "hcp: "},
-		{name: "hcp reversed", src: `hcp: [12, 10]`, wantErr: "hcp: min 12 is greater than max 10"},
-		{name: "hcp above 40", src: `hcp: [0, 41]`, wantErr: "hcp: [0, 41] is outside 0 to 40"},
-		{name: "hcp below 0", src: `hcp: [-1, 10]`, wantErr: "hcp: [-1, 10] is outside 0 to 40"},
-		{name: "partnership_hcp above 40", src: `partnership_hcp: [25, 41]`, wantErr: "partnership_hcp: [25, 41] is outside 0 to 40"},
-		{name: "partnership_hcp reversed", src: `partnership_hcp: [26, 25]`, wantErr: "partnership_hcp: min 26 is greater than max 25"},
-		{name: "suit_length above 13", src: `suit_length: {hearts: [0, 14]}`, wantErr: "suit_length: hearts: [0, 14] is outside 0 to 13"},
-		{name: "suit_length below 0", src: `suit_length: {hearts: [-1, 3]}`, wantErr: "suit_length: hearts: [-1, 3] is outside 0 to 13"},
-		{name: "suit_length reversed", src: `suit_length: {spades: [6, 5]}`, wantErr: "suit_length: spades: min 6 is greater than max 5"},
-		{name: "suit_length unknown suit", src: `suit_length: {stars: [6, 13]}`, wantErr: `suit_length: "stars" is not a suit`},
-		{name: "balanced false", src: `balanced: false`, wantErr: "balanced: only true is accepted"},
-		{name: "balanced yes please", src: `balanced: yes please`, wantErr: "balanced: only true is accepted"},
-		{name: "balanced yes", src: `balanced: yes`, wantErr: "balanced: only true is accepted"},
-		{name: "balanced quoted true", src: `balanced: "true"`, wantErr: "balanced: only true is accepted"},
-		{name: "balanced empty", src: `balanced:`, wantErr: "balanced: only true is accepted"},
-		{name: "rule_of_20 false", src: `rule_of_20: false`, wantErr: "rule_of_20: only true is accepted"},
-		{name: "no_prior_bids false", src: `no_prior_bids: false`, wantErr: "no_prior_bids: only true is accepted"},
+		{
+			name:    "error deep inside nested conditions",
+			src:     "any:\n  - hcp: [15, 17]\n  - all:\n      - balanced: true\n      - suit_length:\n          clubs: [0, 3]\n          hearts: [0, 14]",
+			wantErr: "7: any.all.suit_length.hearts: [0, 14] is outside 0 to 13",
+		},
+		{name: "empty conditions", src: `null`, wantErr: "1: a condition must be a mapping or a list"},
+		{name: "empty mapping", src: `{}`, wantErr: "1: a condition mapping must not be empty"},
+		{name: "empty list", src: `[]`, wantErr: "1: a condition list must not be empty"},
+		{name: "empty all", src: `all: []`, wantErr: "1: all: a condition list must not be empty"},
+		{name: "empty any", src: `any: []`, wantErr: "1: any: a condition list must not be empty"},
+		{name: "empty mapping inside all", src: "all:\n  - {}", wantErr: "2: all: a condition mapping must not be empty"},
+		{name: "scalar", src: `balanced`, wantErr: "1: a condition must be a mapping or a list"},
+		{name: "scalar inside a list", src: "- hcp: [15, 17]\n- balanced", wantErr: "2: a condition must be a mapping or a list"},
+		{name: "all is not a list", src: `all: {hcp: [15, 17]}`, wantErr: "1: all: must be a list of conditions"},
+		{name: "any is not a list", src: `any: {hcp: [15, 17]}`, wantErr: "1: any: must be a list of conditions"},
+		{name: "key repeated in a mapping", src: "hcp: [10, 12]\nhcp: [15, 17]", wantErr: "2: hcp: key appears more than once"},
+		{
+			name:    "suit repeated in suit_length",
+			src:     "suit_length:\n  hearts: [6, 13]\n  H: [0, 3]",
+			wantErr: "3: suit_length.H: suit appears more than once",
+		},
+		{
+			name:    "notrump in suit_length",
+			src:     `suit_length: {NT: [1, 2]}`,
+			wantErr: "1: suit_length.NT: not a suit (clubs, diamonds, hearts or spades)",
+		},
+		{
+			name:    "unknown suit in suit_length",
+			src:     `suit_length: {stars: [6, 13]}`,
+			wantErr: "1: suit_length.stars: not a suit (clubs, diamonds, hearts or spades)",
+		},
+		{name: "suit_length not a mapping", src: `suit_length: [6, 13]`, wantErr: "1: suit_length: must be a mapping of suits to [min, max]"},
+		{name: "invalid partner_bid", src: `partner_bid: "1N"`, wantErr: `1: partner_bid: invalid bid suit in "1N"`},
+		{name: "partner_bid not a call", src: `partner_bid: [1NT]`, wantErr: "1: partner_bid: must be a call such as 1NT or Pass"},
+		{name: "hcp with one value", src: `hcp: [5]`, wantErr: "1: hcp: must be [min, max], got 1 values"},
+		{name: "hcp with three values", src: `hcp: [5, 6, 7]`, wantErr: "1: hcp: must be [min, max], got 3 values"},
+		{name: "hcp not a list", src: `hcp: 5`, wantErr: "1: hcp: must be [min, max] with two whole numbers"},
+		{name: "hcp not integers", src: `hcp: [5, ten]`, wantErr: "1: hcp: must be [min, max] with two whole numbers"},
+		{name: "hcp reversed", src: `hcp: [12, 10]`, wantErr: "1: hcp: min 12 is greater than max 10"},
+		{name: "hcp above 40", src: `hcp: [0, 41]`, wantErr: "1: hcp: [0, 41] is outside 0 to 40"},
+		{name: "hcp below 0", src: `hcp: [-1, 10]`, wantErr: "1: hcp: [-1, 10] is outside 0 to 40"},
+		{name: "partnership_hcp above 40", src: `partnership_hcp: [25, 41]`, wantErr: "1: partnership_hcp: [25, 41] is outside 0 to 40"},
+		{name: "partnership_hcp reversed", src: `partnership_hcp: [26, 25]`, wantErr: "1: partnership_hcp: min 26 is greater than max 25"},
+		{name: "suit_length above 13", src: `suit_length: {hearts: [0, 14]}`, wantErr: "1: suit_length.hearts: [0, 14] is outside 0 to 13"},
+		{name: "suit_length below 0", src: `suit_length: {hearts: [-1, 3]}`, wantErr: "1: suit_length.hearts: [-1, 3] is outside 0 to 13"},
+		{name: "suit_length reversed", src: `suit_length: {spades: [6, 5]}`, wantErr: "1: suit_length.spades: min 6 is greater than max 5"},
+		{name: "balanced false", src: `balanced: false`, wantErr: "1: balanced: only true is accepted"},
+		{name: "balanced yes please", src: `balanced: yes please`, wantErr: "1: balanced: only true is accepted"},
+		{name: "balanced yes", src: `balanced: yes`, wantErr: "1: balanced: only true is accepted"},
+		{name: "balanced quoted true", src: `balanced: "true"`, wantErr: "1: balanced: only true is accepted"},
+		{name: "balanced empty", src: `balanced:`, wantErr: "1: balanced: only true is accepted"},
+		{name: "rule_of_20 false", src: `rule_of_20: false`, wantErr: "1: rule_of_20: only true is accepted"},
+		{name: "no_prior_bids false", src: `no_prior_bids: false`, wantErr: "1: no_prior_bids: only true is accepted"},
 	}
 
 	for _, tc := range tt {
@@ -202,7 +220,7 @@ func TestParseCondition_Errors(t *testing.T) {
 			is := is.New(t)
 			_, err := parseCondition(t, tc.src)
 			is.True(err != nil)
-			is.True(strings.Contains(err.Error(), tc.wantErr)) // error names the problem
+			is.Equal(err.Error(), tc.wantErr)
 		})
 	}
 }

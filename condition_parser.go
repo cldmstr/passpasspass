@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -16,6 +15,9 @@ type conditionParser func(v *yaml.Node) (Condition, error)
 // conditionParsers holds a parser for every condition key. It is filled in init because the
 // parsers for `all` and `any` call parseCondition, which reads the table.
 var conditionParsers map[string]conditionParser
+
+// conditionKeys lists the keys of conditionParsers in order, for error messages.
+var conditionKeys []string
 
 func init() {
 	conditionParsers = map[string]conditionParser{
@@ -29,49 +31,44 @@ func init() {
 		"partner_bid":     parsePartnerBid,
 		"partnership_hcp": parsePartnershipHCP,
 	}
+	conditionKeys = slices.Sorted(maps.Keys(conditionParsers))
 }
 
 // parseCondition turns a YAML condition into a Condition. A list is an `all` of its items;
 // a mapping is an `all` of its keys, each parsed by the parser registered for that key.
 // A list with one item or a mapping with one key returns that condition directly.
+// Errors carry the line of the innermost offending key or value and the keys leading to it.
 func parseCondition(v *yaml.Node) (Condition, error) {
-	switch v.Kind {
-	case yaml.SequenceNode:
+	switch {
+	case v.Kind == yaml.SequenceNode:
 		conditions, err := parseConditionList(v)
 		if err != nil {
 			return nil, err
 		}
 		return conjunction(conditions), nil
 
-	case yaml.MappingNode:
-		if len(v.Content) == 0 {
-			return nil, errors.New("a condition mapping must not be empty")
-		}
+	case v.Kind == yaml.MappingNode && len(v.Content) > 0:
 		return parseConditionKeys(v)
 
+	case v.Kind == yaml.MappingNode:
+		return nil, errorAt(v, errors.New("a condition mapping must not be empty"))
+
 	default:
-		return nil, errors.New("a condition must be a mapping or a list")
+		return nil, errorAt(v, errors.New("a condition must be a mapping or a list"))
 	}
 }
 
 // parseConditionKeys parses every key of a non-empty mapping, in file order.
 func parseConditionKeys(v *yaml.Node) (Condition, error) {
+	if err := checkKeys(v, "condition", conditionKeys); err != nil {
+		return nil, err
+	}
 	conditions := make([]Condition, 0, len(v.Content)/2)
-	seen := make(map[string]bool, len(v.Content)/2)
 	for i := 0; i+1 < len(v.Content); i += 2 {
-		key, value := v.Content[i].Value, v.Content[i+1]
-		if seen[key] {
-			return nil, fmt.Errorf("%s: condition key appears more than once", key)
-		}
-		seen[key] = true
-		parse, ok := conditionParsers[key]
-		if !ok {
-			known := slices.Sorted(maps.Keys(conditionParsers))
-			return nil, fmt.Errorf("%s: unknown condition key (known keys: %s)", key, strings.Join(known, ", "))
-		}
-		c, err := parse(value)
+		key := v.Content[i]
+		c, err := conditionParsers[key.Value](v.Content[i+1])
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", key, err)
+			return nil, keyError(key, err)
 		}
 		conditions = append(conditions, c)
 	}
@@ -91,7 +88,7 @@ func conjunction(conditions []Condition) Condition {
 func parseRange(v *yaml.Node, ceiling int) (lo, hi int, err error) {
 	var r []int
 	if err := v.Decode(&r); err != nil {
-		return 0, 0, err
+		return 0, 0, errors.New("must be [min, max] with two whole numbers")
 	}
 	if len(r) != 2 {
 		return 0, 0, fmt.Errorf("must be [min, max], got %d values", len(r))
@@ -119,7 +116,7 @@ func parseFlag(v *yaml.Node) error {
 func parseBid(v *yaml.Node) (*Bid, error) {
 	var s string
 	if err := v.Decode(&s); err != nil {
-		return nil, err
+		return nil, errors.New("must be a call such as 1NT or Pass")
 	}
 	return NewBidFromString(s)
 }
@@ -127,10 +124,10 @@ func parseBid(v *yaml.Node) (*Bid, error) {
 // parseConditionList decodes a list of conditions, each parsed with parseCondition.
 func parseConditionList(v *yaml.Node) ([]Condition, error) {
 	if v.Kind != yaml.SequenceNode {
-		return nil, errors.New("must be a list of conditions")
+		return nil, errorAt(v, errors.New("must be a list of conditions"))
 	}
 	if len(v.Content) == 0 {
-		return nil, errors.New("a condition list must not be empty")
+		return nil, errorAt(v, errors.New("a condition list must not be empty"))
 	}
 	conditions := make([]Condition, 0, len(v.Content))
 	for _, item := range v.Content {
@@ -145,7 +142,7 @@ func parseConditionList(v *yaml.Node) ([]Condition, error) {
 
 // parseHCP parses `hcp: [min, max]`.
 func parseHCP(v *yaml.Node) (Condition, error) {
-	lo, hi, err := parseRange(v, deckHCP)
+	lo, hi, err := parseRange(v, MaxDeckHCP)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +151,7 @@ func parseHCP(v *yaml.Node) (Condition, error) {
 
 // parsePartnershipHCP parses `partnership_hcp: [min, max]`.
 func parsePartnershipHCP(v *yaml.Node) (Condition, error) {
-	lo, hi, err := parseRange(v, deckHCP)
+	lo, hi, err := parseRange(v, MaxDeckHCP)
 	if err != nil {
 		return nil, err
 	}
@@ -169,18 +166,18 @@ func parseSuitLength(v *yaml.Node) (Condition, error) {
 	r := DistributionRange{{0, HandSize}, {0, HandSize}, {0, HandSize}, {0, HandSize}}
 	seen := make(map[Suit]bool, len(r))
 	for i := 0; i+1 < len(v.Content); i += 2 {
-		name := v.Content[i].Value
-		s, err := NewSuitFromString(name)
+		key := v.Content[i]
+		s, err := NewSuitFromString(key.Value)
 		if err != nil || s == NoTrump {
-			return nil, fmt.Errorf("%q is not a suit (clubs, diamonds, hearts or spades)", name)
+			return nil, keyError(key, errors.New("not a suit (clubs, diamonds, hearts or spades)"))
 		}
 		if seen[s] {
-			return nil, fmt.Errorf("suit %q appears more than once", name)
+			return nil, keyError(key, errors.New("suit appears more than once"))
 		}
 		seen[s] = true
 		lo, hi, err := parseRange(v.Content[i+1], HandSize)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", name, err)
+			return nil, keyError(key, err)
 		}
 		r[s] = SuitRange{lo, hi}
 	}
@@ -213,10 +210,11 @@ func parseNoPriorBids(v *yaml.Node) (Condition, error) {
 
 // parseAll parses `all: [condition, ...]`, which passes when every condition passes.
 func parseAll(v *yaml.Node) (Condition, error) {
-	if v.Kind != yaml.SequenceNode {
-		return nil, errors.New("must be a list of conditions")
+	conditions, err := parseConditionList(v)
+	if err != nil {
+		return nil, err
 	}
-	return parseCondition(v)
+	return conjunction(conditions), nil
 }
 
 // parseAny parses `any: [condition, ...]`, which passes when at least one condition passes.
