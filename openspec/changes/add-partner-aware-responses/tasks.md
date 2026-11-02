@@ -1,15 +1,15 @@
 # Tasks: add-partner-aware-responses
 
 ## 1. Auction history
-- [x] 1.1 Add `type History []BidAction` with `BidsBy(d)`, `LastBidBy(d)`, `Opening()` and `Contract()`
+- [x] 1.1 Add `type History []BidAction` with `BidsBy(d)`, `LastBidBy(d)` and `Opening()`
 - [x] 1.2 Change `AuctionContext.History` to `History`; replace `lastBidByDir` with `LastBidBy`
 - [x] 1.3 Tests: each helper on an empty history, a passed-out history, and a history with leading passes before the opening
 
 ## 2. `auction` pattern condition
-- [ ] 2.1 Add a pattern type whose elements are a call or one of the wildcards `Any`, `Any*` and `Pass*` (design D2), parsed from strings; any other element must parse as a bid
-- [ ] 2.2 Add `NewAuctionPatternCondition(pattern)`: matches the whole history, from the dealer's first call, anchored at both ends; leading passes are part of the history
-- [ ] 2.3 Add an `auction` parser to the condition parser table; an invalid element is a load error
-- [ ] 2.4 Tests: `[]` matches only before the dealer's call; `[1H, Pass]` matches a dealer opening but not a third-seat opening; `[Pass*, 1H, Pass]` matches the opening in every seat; `[1H, Pass]` and `[Pass, 1H, Pass]` tell an unpassed responder from a passed one; `Any` matches exactly one call; `Any*` matches zero, one and several calls; `Pass*` does not match a bid; a longer history does not match; an opponent's bid in place of a Pass does not match; an invalid element fails to load
+- [x] 2.1 Add a pattern type whose elements are a call or one of the wildcards `Any`, `Any*` and `Pass*` (design D2), parsed from strings; any other element must parse as a bid
+- [x] 2.2 Add `NewAuctionPatternCondition(pattern)`: matches the whole history, from the dealer's first call, anchored at both ends; leading passes are part of the history
+- [x] 2.3 Add an `auction` parser to the condition parser table; an invalid element is a load error
+- [x] 2.4 Tests: `[]` matches only before the dealer's call; `[1H, Pass]` matches a dealer opening but not a third-seat opening; `[Pass*, 1H, Pass]` matches the opening in every seat; `[1H, Pass]` and `[Pass, 1H, Pass]` tell an unpassed responder from a passed one; `Any` matches exactly one call; `Any*` matches zero, one and several calls; `Pass*` does not match a bid; a longer history does not match; an opponent's bid in place of a Pass does not match; an invalid element fails to load
 
 ## 3. `not` node
 - [ ] 3.1 Add `NewNotCondition(c)` and a `not` parser; its value is one condition (a mapping with one or more keys, or a list) negated as a whole; an empty value is a load error; the flag-key error message now suggests `not`
@@ -33,7 +33,7 @@
 
 ## 6. Auction state and per-player view
 - [ ] 6.1 Add `AuctionState` (history, `[4]HandModel` shown models, facts per partnership, interpreter, sheets by seat) with `Record(d, bid)`; constructor takes all dependencies
-- [ ] 6.2 Add `Perspective` (own hand, partner's model tightened by own cards, LHO/RHO passed through, own partnership's facts) and build `AuctionContext` and `PartnershipEval` from it
+- [ ] 6.2 Add `Perspective` (own hand, partner's model tightened by own cards, LHO/RHO passed through, own partnership's facts, current contract) and build `AuctionContext` and `PartnershipEval` from it
 - [ ] 6.3 Change `HandRange` fields in `AuctionContext` to `HandModel`; `PartnershipEval` uses partner's `Bounds()`
 - [ ] 6.4 Rewrite `Auction.Run` on top of `AuctionState` and remove its exclusion in `.golangci.yml`; `NewAuction` takes the state; `Table.RunAuction` wires dealer, sheet, interpreter and state
 - [ ] 6.5 Tests: partner's suit maximum drops to 13 minus own length; partner's HCP maximum drops to 40 minus own HCP; existing auction tests still pass
@@ -48,7 +48,7 @@
 ## 8. Conditions on partner's model and legal selection
 - [ ] 8.1 Add `partner_hcp: [min, max]`, `partner_suit_length: {suit: [min, max]}` and `fit: {suit: [min, max]}` (conditions and parsers; ranges follow the range-value limits)
 - [ ] 8.2 Apply the all-alternatives rule (design D5) to the new keys and to `partnership_hcp`
-- [ ] 8.3 `ConventionSheet.Bid` skips conventions whose bid is neither Pass nor higher than the current contract; remove the replace-with-Pass step from `Run`
+- [ ] 8.3 Add `Contract` to `AuctionContext`, set by the auction (nil before the opening); `ConventionSheet.Bid` skips conventions whose bid is neither Pass nor higher than `ctx.Contract`; remove the replace-with-Pass step from `Run`
 - [ ] 8.4 Tests: each new key at its boundaries; `fit: {hearts: [8, 14]}` and `fit: {spades: [7, 13]}` fail to load; opposite a Multi `2♦️` neither `fit: {hearts: [8, 13]}` nor `fit: {spades: [8, 13]}` holds; an illegal first match falls through to the next convention; an explicit `Pass` convention stops the search
 
 ## 9. Migrating existing data

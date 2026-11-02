@@ -270,7 +270,17 @@ conventions:
       hcp: [0, 10]
       suitlength: {spades: [6, 13]}
 `},
-			wantErr: `card.yaml:6: bid 2S: suitlength: unknown condition key (known keys: all, any, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)`,
+			wantErr: `card.yaml:6: bid 2S: suitlength: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)`,
+		},
+		{
+			name: "invalid auction pattern element",
+			files: map[string]string{"card.yaml": `name: test
+conventions:
+  - bid: 2H
+    conditions:
+      auction: [1H, Foo]
+`},
+			wantErr: `card.yaml:5: bid 2H: auction: "Foo" is neither a call nor a wildcard (Any, Any*, Pass*)`,
 		},
 		{
 			name: "key repeated in a convention",

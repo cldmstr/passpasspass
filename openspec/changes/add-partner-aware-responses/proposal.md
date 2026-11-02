@@ -15,7 +15,7 @@ inference cannot support this:
 
 ## What Changes
 - **Auction history**: per-player queries over the call record (calls by a player, last call,
-  opening bid, current contract).
+  opening bid). The current contract reaches conventions through the bidding context.
 - **Hand model with alternatives**: what a player has shown becomes a list of alternative
   HCP and suit-length ranges instead of a single range.
 - **Bids read in context**: a call's meaning comes from the caller's sheet and the auction as it

@@ -46,16 +46,6 @@ func (h History) Opening() (BidAction, bool) {
 	return BidAction{}, false
 }
 
-// Contract returns the most recent non-pass call and true, or false when nobody has bid yet.
-func (h History) Contract() (BidAction, bool) {
-	for i := len(h) - 1; i >= 0; i-- {
-		if h[i].Bid != Pass {
-			return h[i], true
-		}
-	}
-	return BidAction{}, false
-}
-
 // HandRange holds inferred HCP and suit-length bounds for one player.
 type HandRange struct {
 	MinHCP, MaxHCP int

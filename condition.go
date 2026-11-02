@@ -131,6 +131,19 @@ func (noPriorBidsCondition) Eval(ctx *AuctionContext) bool {
 	return !opened
 }
 
+// auctionPatternCondition passes when its pattern matches the whole auction so far.
+type auctionPatternCondition struct{ pattern AuctionPattern }
+
+// NewAuctionPatternCondition passes when pattern matches every call made so far, from the
+// dealer's first call, including passes before the opening.
+func NewAuctionPatternCondition(pattern AuctionPattern) Condition {
+	return auctionPatternCondition{pattern: pattern}
+}
+
+func (c auctionPatternCondition) Eval(ctx *AuctionContext) bool {
+	return c.pattern.Matches(ctx.History)
+}
+
 // partnerBidCondition passes when partner's last call equals bid. A nil bid never matches.
 type partnerBidCondition struct{ bid *Bid }
 

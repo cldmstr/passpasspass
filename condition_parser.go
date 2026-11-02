@@ -30,6 +30,7 @@ func init() {
 		"any":             parseAny,
 		"partner_bid":     parsePartnerBid,
 		"partnership_hcp": parsePartnershipHCP,
+		"auction":         parseAuction,
 	}
 	conditionKeys = slices.Sorted(maps.Keys(conditionParsers))
 }
@@ -233,4 +234,24 @@ func parsePartnerBid(v *yaml.Node) (Condition, error) {
 		return nil, err
 	}
 	return partnerBidCondition{bid: bid}, nil
+}
+
+// parseAuction parses `auction: [element, ...]`, a pattern over the whole auction; see
+// NewAuctionPattern for the elements. An empty list matches before the dealer's call.
+func parseAuction(v *yaml.Node) (Condition, error) {
+	if v.Kind != yaml.SequenceNode {
+		return nil, errors.New("must be a list of calls and wildcards (Any, Any*, Pass*)")
+	}
+	pattern := AuctionPattern{elements: make([]patternElement, 0, len(v.Content))}
+	for _, item := range v.Content {
+		if item.Kind != yaml.ScalarNode {
+			return nil, errorAt(item, errors.New("must be a call or a wildcard (Any, Any*, Pass*)"))
+		}
+		e, err := parsePatternElement(item.Value)
+		if err != nil {
+			return nil, errorAt(item, err)
+		}
+		pattern.elements = append(pattern.elements, e)
+	}
+	return NewAuctionPatternCondition(pattern), nil
 }

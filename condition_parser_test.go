@@ -45,6 +45,8 @@ func TestParseCondition(t *testing.T) {
 		{name: "no_prior_bids", src: `no_prior_bids: true`, want: ppp.NewNoPriorBidsCondition()},
 		{name: "partner_bid", src: `partner_bid: "1NT"`, want: ppp.NewPartnerBidCondition("1NT")},
 		{name: "partner_bid Pass", src: `partner_bid: Pass`, want: ppp.NewPartnerBidCondition("Pass")},
+		{name: "auction", src: `auction: [Pass*, 1H, Pass, Any, Any*]`, want: auctionCondition(t, "Pass*", "1H", "Pass", "Any", "Any*")},
+		{name: "auction before the dealer's call", src: `auction: []`, want: auctionCondition(t)},
 		{
 			name: "suit_length with several suits in any spelling",
 			src:  `suit_length: {hearts: [6, 13], S: [0, 3], ♣️: [1, 2]}`,
@@ -148,17 +150,17 @@ func TestParseCondition_Errors(t *testing.T) {
 		{
 			name:    "unknown key",
 			src:     `suit_len: {hearts: [6, 13]}`,
-			wantErr: "1: suit_len: unknown condition key (known keys: all, any, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
+			wantErr: "1: suit_len: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
 		},
 		{
 			name:    "unknown key next to a known one",
 			src:     "hcp: [15, 17]\nbalance: true",
-			wantErr: "2: balance: unknown condition key (known keys: all, any, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
+			wantErr: "2: balance: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
 		},
 		{
 			name:    "unknown key nested in any",
 			src:     "any:\n  - hcp: [15, 17]\n  - hpc: [20, 21]",
-			wantErr: "3: any.hpc: unknown condition key (known keys: all, any, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
+			wantErr: "3: any.hpc: unknown condition key (known keys: all, any, auction, balanced, hcp, no_prior_bids, partner_bid, partnership_hcp, rule_of_20, suit_length)",
 		},
 		{
 			name:    "error deep inside nested conditions",
@@ -213,6 +215,14 @@ func TestParseCondition_Errors(t *testing.T) {
 		{name: "balanced empty", src: `balanced:`, wantErr: "1: balanced: only true is accepted"},
 		{name: "rule_of_20 false", src: `rule_of_20: false`, wantErr: "1: rule_of_20: only true is accepted"},
 		{name: "no_prior_bids false", src: `no_prior_bids: false`, wantErr: "1: no_prior_bids: only true is accepted"},
+		{name: "auction with an invalid element", src: `auction: [1H, Foo]`, wantErr: `1: auction: "Foo" is neither a call nor a wildcard (Any, Any*, Pass*)`},
+		{
+			name:    "auction element on its own line",
+			src:     "auction:\n  - Pass*\n  - 1H\n  - pass*",
+			wantErr: `4: auction: "pass*" is neither a call nor a wildcard (Any, Any*, Pass*)`,
+		},
+		{name: "auction not a list", src: `auction: 1H`, wantErr: "1: auction: must be a list of calls and wildcards (Any, Any*, Pass*)"},
+		{name: "auction element not a call", src: `auction: [[1H]]`, wantErr: "1: auction: must be a call or a wildcard (Any, Any*, Pass*)"},
 	}
 
 	for _, tc := range tt {
@@ -223,4 +233,14 @@ func TestParseCondition_Errors(t *testing.T) {
 			is.Equal(err.Error(), tc.wantErr)
 		})
 	}
+}
+
+// auctionCondition returns the auction pattern condition for elements.
+func auctionCondition(t *testing.T, elements ...string) ppp.Condition {
+	t.Helper()
+	pattern, err := ppp.NewAuctionPattern(elements...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ppp.NewAuctionPatternCondition(pattern)
 }

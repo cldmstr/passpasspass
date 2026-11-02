@@ -46,9 +46,13 @@ Auction.Run
 ## Decisions
 
 ### D1: `History` as a named slice type
-`type History []BidAction` with `BidsBy(d)`, `LastBidBy(d)`, `Opening()` and `Contract()`.
+`type History []BidAction` with `BidsBy(d)`, `LastBidBy(d)` and `Opening()`.
 `AuctionContext.History` changes to this type and `lastBidByDir` is folded into `LastBidBy`. The
 auction as it stood when call *i* was made is `h[:i]`.
+
+History is a plain record of calls and does not answer for the contract (user decision). The
+auction already tracks its contract as calls are recorded and passes it on as
+`AuctionContext.Contract`: the highest bid so far, or nil before the opening.
 
 ### D2: `auction` matches the whole call history (user decision)
 `auction: [...]` matches when the pattern covers the entire history, from the dealer's first call
@@ -143,7 +147,7 @@ LHO and RHO models are passed through untightened.
 
 ### D7: The sheet only returns legal bids
 `ConventionSheet.Bid` skips a convention whose bid is neither Pass nor higher than
-`ctx.History.Contract()`, and tries the next. The replace-with-Pass step in `Run` is removed. A
+`ctx.Contract`, and tries the next. The replace-with-Pass step in `Run` is removed. A
 convention may bid `Pass` explicitly, which stops a weaker rule further down the sheet from
 firing (e.g. opener passing `2♥️` after Multi with weak hearts).
 

@@ -67,11 +67,12 @@ func TestAuction_Run_SingleOpener(t *testing.T) {
 
 	is.Equal("1NT", a.Contract.String())
 	is.Equal(ppp.North, a.Declarer)
-	is.Equal(4, len(a.Bids))
-	is.Equal("1NT", a.Bids[0].Bid.String()) // North opens
-	is.Equal(ppp.Pass, a.Bids[1].Bid)       // East: 0 HCP
-	is.Equal(ppp.Pass, a.Bids[2].Bid)       // South: 2 HCP
-	is.Equal(ppp.Pass, a.Bids[3].Bid)       // West: 22 HCP > ceiling
+	assertCalls(t, a.Bids, []call{
+		{ppp.North, "1NT"},  // North opens
+		{ppp.East, "Pass"},  // East: 0 HCP
+		{ppp.South, "Pass"}, // South: 2 HCP
+		{ppp.West, "Pass"},  // West: 22 HCP > ceiling
+	})
 }
 
 func TestNewPartnershipEval(t *testing.T) {
@@ -121,11 +122,29 @@ func TestAuction_Run_BidLegalityEnforcement(t *testing.T) {
 
 	is.Equal("1❤️", a.Contract.String())
 	is.Equal(ppp.North, a.Declarer)
-	is.Equal(4, len(a.Bids))
-	is.Equal("1❤️", a.Bids[0].Bid.String()) // North opens
-	is.Equal(ppp.Pass, a.Bids[1].Bid)       // East: 1♥ ≤ contract → coerced
-	is.Equal(ppp.Pass, a.Bids[2].Bid)       // South: same
-	is.Equal(ppp.Pass, a.Bids[3].Bid)       // West: same
+	assertCalls(t, a.Bids, []call{
+		{ppp.North, "1❤️"},  // North opens
+		{ppp.East, "Pass"},  // East: 1♥ ≤ contract → coerced
+		{ppp.South, "Pass"}, // South: same
+		{ppp.West, "Pass"},  // West: same
+	})
+}
+
+// call is an expected call in an auction: the seat that made it and the bid.
+type call struct {
+	dir ppp.Direction
+	bid string
+}
+
+// assertCalls checks that bids holds exactly the calls in want, in order.
+func assertCalls(t *testing.T, bids []ppp.BidAction, want []call) {
+	t.Helper()
+	is := is.NewRelaxed(t)
+	is.Equal(len(want), len(bids))
+	for i := range min(len(want), len(bids)) {
+		is.Equal(want[i].dir, bids[i].Direction)    // seat of call i
+		is.Equal(want[i].bid, bids[i].Bid.String()) // bid of call i
+	}
 }
 
 // bidStrings renders bids for comparison; NewBid returns a fresh pointer per call.
@@ -210,30 +229,6 @@ func TestHistory_Opening(t *testing.T) {
 			if ok {
 				is.Equal(want[tc.name].dir, opening.Direction)
 				is.Equal(want[tc.name].bid, opening.Bid.String())
-			}
-		})
-	}
-}
-
-func TestHistory_Contract(t *testing.T) {
-	type result struct {
-		ok  bool
-		dir ppp.Direction
-		bid string
-	}
-	want := map[string]result{
-		"empty":        {ok: false},
-		"passed out":   {ok: false},
-		"leading pass": {ok: true, dir: ppp.West, bid: "2❤️"},
-	}
-	for _, tc := range historyCases() {
-		t.Run(tc.name, func(t *testing.T) {
-			is := is.New(t)
-			contract, ok := tc.history.Contract()
-			is.Equal(want[tc.name].ok, ok)
-			if ok {
-				is.Equal(want[tc.name].dir, contract.Direction)
-				is.Equal(want[tc.name].bid, contract.Bid.String())
 			}
 		})
 	}

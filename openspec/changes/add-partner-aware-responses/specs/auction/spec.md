@@ -3,15 +3,15 @@
 ### Requirement: Auction history
 The auction SHALL keep every call in order together with the seat that made it, and SHALL answer
 these queries: all calls by a given seat; a seat's most recent call (Pass if it has not called);
-the opening bid and the seat that made it; and the current contract.
+and the opening bid and the seat that made it.
 
 #### Scenario: Opening after leading passes
 - **WHEN** North passes, East bids `1♥️`, South passes and West bids `2♥️`
-- **THEN** the opening is `1♥️` by East, the contract is `2♥️`, and the calls by East are `[1♥️]`
+- **THEN** the opening is `1♥️` by East, and the calls by East are `[1♥️]`
 
 #### Scenario: No opening yet
 - **WHEN** only passes have been made
-- **THEN** there is no opening and no contract
+- **THEN** there is no opening
 
 ### Requirement: Hand model with alternatives
 What a player has shown SHALL be a list of alternative ranges, each with HCP bounds and per-suit
@@ -111,15 +111,20 @@ A Pass SHALL leave the model unchanged.
 
 ### Requirement: Bidding context
 Before each call, the system SHALL give the seat's convention sheet a context built from that
-seat's own view of the auction: the seat's hand, its direction, the auction history so far,
-partner's shown model tightened by the seat's own cards, the LHO's and RHO's shown models
-unchanged, the facts established for the seat's partnership, and the partnership evaluation.
+seat's own view of the auction: the seat's hand, its direction, the auction history so far, the
+current contract (the highest bid so far, or none before the opening), partner's shown model
+tightened by the seat's own cards, the LHO's and RHO's shown models unchanged, the facts
+established for the seat's partnership, and the partnership evaluation.
 Tightening SHALL limit partner to at most 13 minus the seat's own length in each suit and at most
 40 minus the seat's own HCP.
 
 #### Scenario: Responder sees the opening
 - **WHEN** North has opened `1NT` and South is about to call
 - **THEN** South's context history contains North's `1NT` and East's call
+
+#### Scenario: Current contract
+- **WHEN** North has opened `1♥️`, East has bid `2♣️`, South has passed and West is about to call
+- **THEN** the contract in West's context is `2♣️`
 
 #### Scenario: Own cards limit partner
 - **WHEN** partner has shown 5+ spades and the seat holds 6 spades
