@@ -54,18 +54,20 @@ type PartnershipEval struct {
 }
 
 // NewPartnershipEval computes the combined picture from own hand and partner's inferred range.
+// A partnership never holds more than the deck's MaxDeckHCP points or HandSize cards of a suit,
+// so the combined ranges are capped there.
 func NewPartnershipEval(self *Hand, partner HandRange) PartnershipEval {
 	selfDist := self.Distribution()
 	var fit [4]SuitRange
 	for i := range 4 {
 		fit[i] = SuitRange{
-			Min: selfDist[i] + partner.SuitLength[i].Min,
-			Max: selfDist[i] + partner.SuitLength[i].Max,
+			Min: min(selfDist[i]+partner.SuitLength[i].Min, HandSize),
+			Max: min(selfDist[i]+partner.SuitLength[i].Max, HandSize),
 		}
 	}
 	return PartnershipEval{
-		MinCombinedHCP: self.HCP() + partner.MinHCP,
-		MaxCombinedHCP: self.HCP() + partner.MaxHCP,
+		MinCombinedHCP: min(self.HCP()+partner.MinHCP, MaxDeckHCP),
+		MaxCombinedHCP: min(self.HCP()+partner.MaxHCP, MaxDeckHCP),
 		SuitFit:        fit,
 	}
 }

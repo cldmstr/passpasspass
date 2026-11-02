@@ -107,7 +107,7 @@ Auction      2❤️ Pass
 Partner       6–10 HCP  ♠️ 0–13  ❤️ 6–13  ♦️ 0–13  ♣️ 0–13
 LHO          nothing shown
 RHO          nothing shown
-Partnership  22–26 HCP  ♠️ 3–16  ❤️ 9–16  ♦️ 3–16  ♣️ 4–17
+Partnership  22–26 HCP  ♠️ 3–13  ❤️ 9–13  ♦️ 3–13  ♣️ 4–13
 `)
 }
 
@@ -147,6 +147,38 @@ func TestNewPartnershipEval(t *testing.T) {
 	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Diamonds]) // 3 + [2,4]
 	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Hearts])   // 3 + [2,4]
 	is.Equal(ppp.SuitRange{Min: 5, Max: 7}, eval.SuitFit[ppp.Spades])   // 3 + [2,4]
+}
+
+func TestNewPartnershipEval_Caps(t *testing.T) {
+	// Self: 7 hearts, A♣️(4)+K♣️(3)+Q♣️(2)+A♦️(4)+K♦️(3)+A❤️(4)+K❤️(3)+Q❤️(2) = 25 HCP.
+	self := mustHand([]string{
+		"A♣️", "K♣️", "Q♣️",
+		"A♦️", "K♦️",
+		"A❤️", "K❤️", "Q❤️", "2❤️", "3❤️", "4❤️", "5❤️",
+		"2♠️",
+	})
+
+	t.Run("opposite a player who has shown nothing", func(t *testing.T) {
+		is := is.New(t)
+		eval := ppp.NewPartnershipEval(self, ppp.DefaultHandRange())
+		is.Equal(25, eval.MinCombinedHCP)                                    // 25 + 0
+		is.Equal(40, eval.MaxCombinedHCP)                                    // 25 + 37, capped at the deck's 40
+		is.Equal(ppp.SuitRange{Min: 7, Max: 13}, eval.SuitFit[ppp.Hearts])   // 7 + [0,13], capped at 13
+		is.Equal(ppp.SuitRange{Min: 1, Max: 13}, eval.SuitFit[ppp.Spades])   // 1 + [0,13], capped at 13
+		is.Equal(ppp.SuitRange{Min: 3, Max: 13}, eval.SuitFit[ppp.Clubs])    // 3 + [0,13], capped at 13
+		is.Equal(ppp.SuitRange{Min: 2, Max: 13}, eval.SuitFit[ppp.Diamonds]) // 2 + [0,13], capped at 13
+	})
+
+	t.Run("minimums are capped too", func(t *testing.T) {
+		is := is.New(t)
+		partner := ppp.DefaultHandRange()
+		partner.MinHCP, partner.MaxHCP = 20, 22 // more than the 15 left in the deck
+		partner.SuitLength[ppp.Hearts] = ppp.SuitRange{Min: 7, Max: 8}
+		eval := ppp.NewPartnershipEval(self, partner)
+		is.Equal(40, eval.MinCombinedHCP)
+		is.Equal(40, eval.MaxCombinedHCP)
+		is.Equal(ppp.SuitRange{Min: 13, Max: 13}, eval.SuitFit[ppp.Hearts])
+	})
 }
 
 func TestAuction_Run_BidLegalityEnforcement(t *testing.T) {

@@ -148,7 +148,8 @@ convention-evaluation. When no such convention exists, the seat SHALL pass.
 The partnership evaluation SHALL combine the seat's own hand with partner's model from the seat's
 view: the combined HCP range is own HCP plus the lowest and highest HCP across partner's
 alternatives, and the fit in each suit is own length plus the lowest and highest length across
-partner's alternatives.
+partner's alternatives. A partnership never holds more than the deck does, so both ends of the
+combined HCP range SHALL be capped at 40, and both ends of each suit's fit at 13.
 
 #### Scenario: Opposite a 1NT opening
 - **WHEN** the seat holds 10 HCP and 3 hearts, and partner has shown 15–17 HCP and 2–5 hearts
