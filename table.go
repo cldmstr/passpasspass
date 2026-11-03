@@ -34,7 +34,10 @@ func (t *Table) RunAuction() *Auction {
 	hands := t.dealer.Deal()
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	dir := Direction(rng.Intn(4))
-	auction := NewAuction(dir, t.cs, hands)
+	sheets := [4]*ConventionSheet{t.cs, t.cs, t.cs, t.cs}
+	shown := [4]HandModel{DefaultHandModel(), DefaultHandModel(), DefaultHandModel(), DefaultHandModel()}
+	state := NewAuctionState(NewSheetInterpreter(), sheets, shown)
+	auction := NewAuction(dir, hands, state)
 	auction.Run()
 	return auction
 }

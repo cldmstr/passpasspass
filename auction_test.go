@@ -29,11 +29,22 @@ func oneSuitedDeal() []*ppp.Hand {
 	}
 }
 
+// nothingShown returns the models of four players before the first call.
+func nothingShown() [4]ppp.HandModel {
+	return [4]ppp.HandModel{ppp.DefaultHandModel(), ppp.DefaultHandModel(), ppp.DefaultHandModel(), ppp.DefaultHandModel()}
+}
+
+// newAuction returns an auction in which every seat bids by cs, read with the sheet interpreter.
+func newAuction(dealer ppp.Direction, cs *ppp.ConventionSheet, hands []*ppp.Hand) *ppp.Auction {
+	state := ppp.NewAuctionState(ppp.NewSheetInterpreter(), [4]*ppp.ConventionSheet{cs, cs, cs, cs}, nothingShown())
+	return ppp.NewAuction(dealer, hands, state)
+}
+
 func TestAuction_Run_PassedOut(t *testing.T) {
 	is := is.New(t)
 
 	cs := ppp.NewConventionSheet() // empty — every player passes
-	a := ppp.NewAuction(ppp.North, cs, oneSuitedDeal())
+	a := newAuction(ppp.North, cs, oneSuitedDeal())
 	a.Run()
 
 	is.True(a.Contract == nil)
@@ -63,7 +74,7 @@ func TestAuction_Run_SingleOpener(t *testing.T) {
 		ppp.NewHCPIntervalCondition(15, 17),
 	))
 
-	a := ppp.NewAuction(ppp.North, cs, hands)
+	a := newAuction(ppp.North, cs, hands)
 	a.Run()
 
 	is.Equal("1NT", a.Contract.String())
@@ -82,9 +93,11 @@ func TestAuction_Run_SingleOpener(t *testing.T) {
 		is.Equal(step.Context.Position, a.Bids[i].Direction)
 		is.Equal(len(step.Context.History), i) // the calls before this one
 	}
-	is.Equal(a.Steps[0].Context.Partner.String(), "nothing shown")
-	is.Equal(a.Steps[2].Context.Partner.String(), "15–17 HCP  ♠️ 2–5  ❤️ 2–5  ♦️ 2–5  ♣️ 2–5") // South sees North's 1NT
-	is.Equal(a.Steps[1].Context.RHO.String(), "15–17 HCP  ♠️ 2–5  ❤️ 2–5  ♦️ 2–5  ♣️ 2–5")     // and so does East
+	is.True(strings.Contains(a.Steps[0].Context.String(), "Partner      nothing shown\n"))
+	is.Equal(len(a.Steps[2].Context.Partner.Cases), 1)
+	is.Equal(a.Steps[2].Context.Partner.Cases[0].String(), "15–17 HCP  ♠️ 2–5  ❤️ 2–5  ♦️ 2–5  ♣️ 2–5") // South sees North's 1NT
+	is.Equal(len(a.Steps[1].Context.RHO.Cases), 1)
+	is.Equal(a.Steps[1].Context.RHO.Cases[0].String(), "15–17 HCP  ♠️ 2–5  ❤️ 2–5  ♦️ 2–5  ♣️ 2–5") // and so does East
 }
 
 func TestAuctionContext_String(t *testing.T) {
@@ -97,9 +110,9 @@ func TestAuctionContext_String(t *testing.T) {
 		SelfHand:    hand,
 		Position:    ppp.South,
 		History:     calls(t, "2H", "Pass"),
-		Partner:     partner,
-		LHO:         ppp.DefaultHandRange(),
-		RHO:         ppp.DefaultHandRange(),
+		Partner:     ppp.HandModel{Cases: []ppp.HandRange{partner}},
+		LHO:         ppp.DefaultHandModel(),
+		RHO:         ppp.DefaultHandModel(),
 		Partnership: ppp.NewPartnershipEval(hand, partner),
 	}
 	is.Equal(ctx.String(), `Hand         16 HCP [3,3,3,4]
@@ -192,7 +205,7 @@ func TestAuction_Run_BidLegalityEnforcement(t *testing.T) {
 		ppp.NewHCPIntervalCondition(10, 37),
 	))
 
-	a := ppp.NewAuction(ppp.North, cs, oneSuitedDeal())
+	a := newAuction(ppp.North, cs, oneSuitedDeal())
 	a.Run()
 
 	is.Equal("1❤️", a.Contract.String())

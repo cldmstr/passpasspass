@@ -32,23 +32,23 @@
 - [x] 5.9 Tests for `not`: `not: {hcp: [0, 9]}` shows 10+; `not: {suit_length: {hearts: [4, 13]}}` shows 0–3 hearts; `not: {balanced: true}` leaves the model unconstrained; a negated auction guard that holds removes the convention
 
 ## 6. Auction state and per-player view
-- [ ] 6.1 Add `AuctionState` (history, `[4]HandModel` shown models, facts per partnership, interpreter, sheets by seat) with `Record(d, bid)`; constructor takes all dependencies
-- [ ] 6.2 Add `Perspective` (own hand, partner's model tightened by own cards, LHO/RHO passed through, own partnership's facts, current contract) and build `AuctionContext` and `PartnershipEval` from it
-- [ ] 6.3 Change `HandRange` fields in `AuctionContext` to `HandModel`; `PartnershipEval` uses partner's `Bounds()`; `AuctionContext.String` prints every alternative of a model on its own line
-- [ ] 6.4 Rewrite `Auction.Run` on top of `AuctionState` and remove its exclusion in `.golangci.yml`; `NewAuction` takes the state; `Table.RunAuction` wires dealer, sheet, interpreter and state
-- [ ] 6.5 Tests: partner's suit maximum drops to 13 minus own length; partner's HCP maximum drops to 40 minus own HCP; existing auction tests still pass
+- [x] 6.1 Add `AuctionState` (history, `[4]HandModel` shown models, current contract, interpreter, sheets by seat) with `Record(d, bid)`; constructor takes all dependencies; when a call contradicts what the caller had shown, the caller's model becomes the meaning of that call (design D6); facts follow in 7.3
+- [x] 6.2 Add `Perspective` (own hand, partner's model tightened by own cards, LHO/RHO passed through, current contract) and build `AuctionContext` and `PartnershipEval` from it; when own cards leave no hand for partner, keep partner's model untightened and set its `Conflict` flag (design D6)
+- [x] 6.3 Change `HandRange` fields in `AuctionContext` to `HandModel` and add `Contract` (nil before the opening); `PartnershipEval` uses partner's `Bounds()`; `AuctionContext.String` prints every alternative of a model on its own line and marks a conflicting model
+- [x] 6.4 Rewrite `Auction.Run` on top of `AuctionState` and remove its exclusion in `.golangci.yml`; `NewAuction` takes the state; `Table.RunAuction` wires dealer, sheet, interpreter and state
+- [x] 6.5 Tests: partner's suit maximum drops to 13 minus own length; partner's HCP maximum drops to 40 minus own HCP; own cards that leave no hand for partner keep partner's model and flag it; a contradicting call replaces the caller's model; the current contract reaches the context; existing auction tests still pass
 
 ## 7. Established facts
 - [ ] 7.1 Add the optional `establishes: {agreed: <strain>, forcing: one_round | game}` key to convention entries, decoded with unknown keys rejected; store it on `Convention`; an unknown fact, strain or forcing value is a load error
 - [ ] 7.2 The interpreter returns the facts a call establishes: only facts that every contributing convention declares with the same value (design D10)
-- [ ] 7.3 `AuctionState.Record` updates the caller's partnership: a new `agreed` replaces the old one; `one_round` applies to partner's next call only; `game` lasts until the partnership's contract reaches game
+- [ ] 7.3 `AuctionState` keeps the facts per partnership, and `Perspective` and `AuctionContext` carry the caller's partnership's facts; `AuctionState.Record` updates the caller's partnership: a new `agreed` replaces the old one; `one_round` applies to partner's next call only; `game` lasts until the partnership's contract reaches game
 - [ ] 7.4 Add `agreed: <strain>` and `forced: true` (conditions and parsers; `forced` accepts only `true`), reading the bidder's partnership facts from `AuctionContext`; the interpreter treats both as auction-only guards
 - [ ] 7.5 Tests with a temporary card: a rule guarded by `agreed: hearts` fires after `1♥️–2♥️`, `1♥️–3♥️` and `1♥️–2NT` but not after `1♥️–1♠️`; a later agreement replaces an earlier one; facts of one partnership are not seen as the other's; `forced` holds for partner's next call after `one_round` and not the call after; `forced` holds after a game force until game is bid; two conventions that explain the same call with different facts record neither
 
 ## 8. Conditions on partner's model and legal selection
 - [ ] 8.1 Add `partner_hcp: [min, max]`, `partner_suit_length: {suit: [min, max]}` and `fit: {suit: [min, max]}` (conditions, parsers and `Shown` as in design D4, with `fit` translated into bounds on the caller's own suit like `partnership_hcp`; ranges follow the range-value limits)
 - [ ] 8.2 Apply the all-alternatives rule (design D5) to the new keys and to `partnership_hcp`
-- [ ] 8.3 Add `Contract` to `AuctionContext`, set by the auction (nil before the opening); `ConventionSheet.Bid` skips conventions whose bid is neither Pass nor higher than `ctx.Contract`; remove the replace-with-Pass step from `Run`
+- [ ] 8.3 `ConventionSheet.Bid` skips conventions whose bid is neither Pass nor higher than `ctx.Contract` (added in 6.3); remove the replace-with-Pass step from `Run`
 - [ ] 8.4 Tests: each new key at its boundaries; `fit: {hearts: [8, 14]}` and `fit: {spades: [7, 13]}` fail to load; opposite a Multi `2♦️` neither `fit: {hearts: [8, 13]}` nor `fit: {spades: [8, 13]}` holds; an illegal first match falls through to the next convention; an explicit `Pass` convention stops the search
 
 ## 9. Migrating existing data

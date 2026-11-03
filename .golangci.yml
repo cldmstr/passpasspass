@@ -75,11 +75,6 @@ linters:
       - linters: [gosec]
         text: "G404"
 
-      # Temporary: each function below is rewritten or removed by add-partner-aware-responses.
-      # Delete the matching rule when its task is done.
-      - linters: [cyclop]
-        text: "function Run " # rewritten on top of AuctionState in task 6.4
-
 formatters:
   enable:
     - gofmt

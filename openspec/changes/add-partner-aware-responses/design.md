@@ -167,7 +167,19 @@ builds the per-deal state, which follows the AGENTS.md dependency-injection rule
 
 `Perspective` combines the player's own hand with partner's shown model, tightened by the player's
 cards: partner holds at most `13 − own length` in each suit and at most `40 − own HCP` points.
-LHO and RHO models are passed through untightened.
+LHO and RHO models are passed through untightened. The current contract, which `AuctionState`
+tracks as calls are recorded, reaches the context as `AuctionContext.Contract`. Facts (D10) join
+`AuctionState` and `Perspective` in task 7.3.
+
+Two conflicts are resolved in favour of what was said most recently (user decision):
+
+- **A call that contradicts the caller's earlier calls**: when the meaning of a call has no hand
+  in common with what the caller had shown, the caller's model becomes the meaning of the latest
+  call. Keeping the empty intersection would leave every later reader with nothing.
+- **Partner's model against the player's own cards**: when the player's cards leave no hand
+  partner could hold (partner showed 6+ spades, the player holds 8), the context keeps partner's
+  model as partner showed it and sets `HandModel.Conflict`. The flag tells later rules that
+  partner has misbid or is lying; handling that is left to a later change.
 
 ### D7: The sheet only returns legal bids
 `ConventionSheet.Bid` skips a convention whose bid is neither Pass nor higher than

@@ -49,11 +49,11 @@ inference cannot support this:
 ## Impact
 - Requires `refactor-condition-nodes`: conditions are parsed key by key into typed nodes, so
   the new keys are parser-table entries and reading a call is a method on each node.
-- Affected specs: `auction`, `bidding-conditions`, `convention-evaluation`, `convention-files`,
-  `standard-conventions`
+- Affected specs: `auction`, `bidding-conditions`, `cli` (verbose output shows models),
+  `convention-evaluation`, `convention-files`, `standard-conventions`
 - Affected code: `auction.go` (history, hand model, interpretation, per-player view,
   established facts), `condition.go` (new conditions, `not`, pattern matching, all-alternatives
   semantics), `convention.go` (legal selection, declared facts), `loader.go` (new keys,
   `establishes`, compiling condition trees into hand models), `table.go` (wiring),
   `data/conventions/*.yaml`, new `data/conventions/splinters.yaml`, `data/cards/*.yaml`
-- Unchanged: `cards-and-hands`, `dealing`, `cli`
+- Unchanged: `cards-and-hands`, `dealing`

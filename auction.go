@@ -2,6 +2,7 @@ package passpasspass
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -72,14 +73,16 @@ func NewPartnershipEval(self *Hand, partner HandRange) PartnershipEval {
 	}
 }
 
-// AuctionContext is passed to every Condition during a live auction.
+// AuctionContext is passed to every Condition during a live auction. It is one player's view:
+// partner's model is seen through the player's own cards, the opponents' models are as shown.
 type AuctionContext struct {
 	SelfHand    *Hand
 	Position    Direction
 	History     History
-	Partner     HandRange
-	LHO         HandRange
-	RHO         HandRange
+	Contract    *Bid // the highest bid so far, nil before the opening
+	Partner     HandModel
+	LHO         HandModel
+	RHO         HandModel
 	Partnership PartnershipEval
 }
 
@@ -97,56 +100,34 @@ type Auction struct {
 	Steps    []AuctionStep // the context of every call, in order, populated after Run
 	Contract *Bid          // nil = passed out, populated after Run
 	Declarer Direction     // who made the final non-pass bid, populated after Run
-	cs       *ConventionSheet
+	state    *AuctionState
 }
 
-// NewAuction creates an Auction with the given dealer direction, convention sheet, and hands.
-func NewAuction(dealer Direction, cs *ConventionSheet, hands []*Hand) *Auction {
+// NewAuction creates an Auction with the given dealer, hands, and the state its calls are
+// recorded in.
+func NewAuction(dealer Direction, hands []*Hand, state *AuctionState) *Auction {
 	a := &Auction{
 		Dealer: dealer,
-		Bids:   make([]BidAction, 0, 40),
-		cs:     cs,
+		state:  state,
 	}
 	copy(a.Hands[:], hands)
 	return a
 }
 
-// Run executes the full bidding sequence and populates Bids, Contract, and Declarer.
+// Run executes the full bidding sequence and populates Bids, Steps, Contract, and Declarer.
 func (a *Auction) Run() {
-	interp := NewSheetInterpreter() // injected through AuctionState in task 6.4
-	var shown [4]HandModel
-	for i := range shown {
-		shown[i] = DefaultHandModel()
-	}
-
 	consecutivePasses := 0
-	current := a.Dealer
-
-	for {
-		pos := current
-		partner := partnerOf(pos)
-		h := a.Hands[int(pos)]
-
-		ctx := &AuctionContext{
-			SelfHand:    h,
-			Position:    pos,
-			History:     a.Bids,
-			Partner:     boundsOf(shown[partner]),
-			LHO:         boundsOf(shown[lhoOf(pos)]),
-			RHO:         boundsOf(shown[rhoOf(pos)]),
-			Partnership: NewPartnershipEval(h, boundsOf(shown[partner])),
-		}
-
-		bid := a.cs.Bid(ctx)
+	for pos := a.Dealer; !a.over(consecutivePasses); pos = (pos + 1) % 4 {
+		ctx := a.state.Perspective(pos, a.Hands[pos]).Context()
+		bid := a.state.Sheet(pos).Bid(ctx)
 
 		// Bid legality: must be strictly above the current contract
 		if bid != Pass && a.Contract != nil && bid.Value() <= a.Contract.Value() {
 			bid = Pass
 		}
 
-		read := interp.Read(a.cs, &CallContext{Caller: pos, History: a.Bids, Shown: shown}, bid)
-		shown[pos] = shown[pos].Intersect(read)
-		a.Bids = append(a.Bids, BidAction{Direction: pos, Bid: bid})
+		a.state.Record(pos, bid)
+		a.Bids = a.state.History()
 		a.Steps = append(a.Steps, AuctionStep{Context: ctx, Call: bid})
 
 		if bid == Pass {
@@ -156,14 +137,16 @@ func (a *Auction) Run() {
 			a.Contract = bid
 			a.Declarer = pos
 		}
-
-		current = (current + 1) % 4
-
-		if (a.Contract == nil && consecutivePasses == 4) ||
-			(a.Contract != nil && consecutivePasses == 3) {
-			break
-		}
 	}
+}
+
+// over reports whether the auction has ended: four passes before an opening, or three after a
+// bid.
+func (a *Auction) over(consecutivePasses int) bool {
+	if a.Contract == nil {
+		return consecutivePasses == 4
+	}
+	return consecutivePasses == 3
 }
 
 // String shows all four hands followed by the bidding sequence and contract.
@@ -247,9 +230,39 @@ func (c *AuctionContext) String() string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "Hand         %d HCP %s\n", c.SelfHand.HCP(), c.SelfHand.Distribution())
 	fmt.Fprintf(&sb, "Auction      %s\n", auction)
-	fmt.Fprintf(&sb, "Partner      %s\n", c.Partner)
-	fmt.Fprintf(&sb, "LHO          %s\n", c.LHO)
-	fmt.Fprintf(&sb, "RHO          %s\n", c.RHO)
+	if sameModel(c.Partner, seenWith(DefaultHandModel(), c.SelfHand)) {
+		// Partner has shown nothing beyond what the player's own cards rule out.
+		writeModel(&sb, "Partner", DefaultHandModel())
+	} else {
+		writeModel(&sb, "Partner", c.Partner)
+	}
+	writeModel(&sb, "LHO", c.LHO)
+	writeModel(&sb, "RHO", c.RHO)
 	fmt.Fprintf(&sb, "Partnership  %s\n", c.Partnership)
 	return sb.String()
+}
+
+// sameModel reports whether m and n hold the same alternatives in the same order and the same
+// conflict flag.
+func sameModel(m, n HandModel) bool {
+	return m.Conflict == n.Conflict && slices.Equal(m.Cases, n.Cases)
+}
+
+// writeModel writes m after label, one alternative per line aligned under the first, and marks a
+// model that conflicts with the viewer's own hand.
+func writeModel(sb *strings.Builder, label string, m HandModel) {
+	if m.IsEmpty() {
+		fmt.Fprintf(sb, "%-13sno hand fits\n", label)
+		return
+	}
+	for i, r := range m.Cases {
+		if i > 0 {
+			label = ""
+		}
+		fmt.Fprintf(sb, "%-13s%s", label, r)
+		if i == 0 && m.Conflict {
+			sb.WriteString("  (conflicts with own hand)")
+		}
+		sb.WriteString("\n")
+	}
 }

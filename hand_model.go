@@ -43,6 +43,10 @@ func DefaultHandRange() HandRange {
 // hand may fit. A model without alternatives is empty: no hand fits it.
 type HandModel struct {
 	Cases []HandRange
+
+	// Conflict marks a partner's model that no hand can fit as seen from the viewer's own cards.
+	// It is kept as partner showed it, since partner has misbid or is lying.
+	Conflict bool
 }
 
 // DefaultHandModel returns the model of a player who has shown nothing: one unconstrained range.

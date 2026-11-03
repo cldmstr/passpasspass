@@ -84,7 +84,8 @@ convention's model is derived from its conditions:
   players' models, and partnership conditions.
 
 A Pass SHALL leave the model unchanged, and so SHALL a call that no convention in the caller's
-sheet explains in that auction.
+sheet explains in that auction. When the meaning of a call has no hand in common with the caller's
+model, the caller's model SHALL become the meaning of that call.
 
 #### Scenario: Strong notrump opening
 - **WHEN** North opens `1NT` with a sheet whose `1NT` opening requires `balanced: true` and `hcp: [15, 17]`
@@ -101,6 +102,10 @@ sheet explains in that auction.
 #### Scenario: Unexplained call
 - **WHEN** North has opened `1♣️` and East bids `1NT`, which East's sheet only allows when nobody has opened
 - **THEN** East's model is unchanged
+
+#### Scenario: Contradicting call
+- **WHEN** a seat has shown 12–21 HCP and its next call, read alone, shows 0–5 HCP
+- **THEN** the seat's model shows 0–5 HCP
 
 #### Scenario: Negated HCP range
 - **WHEN** the only convention for a call requires `not: {hcp: [0, 9]}`
@@ -121,7 +126,9 @@ current contract (the highest bid so far, or none before the opening), partner's
 tightened by the seat's own cards, the LHO's and RHO's shown models unchanged, the facts
 established for the seat's partnership, and the partnership evaluation.
 Tightening SHALL limit partner to at most 13 minus the seat's own length in each suit and at most
-40 minus the seat's own HCP.
+40 minus the seat's own HCP. When the seat's own cards leave no hand partner could hold, the
+context SHALL keep partner's shown model untightened and mark it as conflicting with the seat's
+hand.
 
 #### Scenario: Responder sees the opening
 - **WHEN** North has opened `1NT` and South is about to call
@@ -134,6 +141,10 @@ Tightening SHALL limit partner to at most 13 minus the seat's own length in each
 #### Scenario: Own cards limit partner
 - **WHEN** partner has shown 5+ spades and the seat holds 6 spades
 - **THEN** partner's spade range in the seat's context is 5–7
+
+#### Scenario: Own cards contradict partner
+- **WHEN** partner has shown 6+ spades and the seat holds 8 spades
+- **THEN** partner's model in the seat's context still shows 6+ spades and is marked as conflicting
 
 ### Requirement: Bid legality
 The system SHALL only record legal calls. A seat's call SHALL be the first convention in its sheet
