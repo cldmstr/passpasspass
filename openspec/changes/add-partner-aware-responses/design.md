@@ -294,3 +294,9 @@ This answers "after a suit has been agreed" in one condition, however the auctio
 - Splinter range: 12–15 HCP is proposed. Some partnerships use 10–13 or 13–16.
 - Opener's 18–19 point unbalanced hands have no opening on either card (one-level openings stop
   at 17, `2♣️` starts at 20). This is out of scope here but affects rebid ranges later.
+- Slam bidding has no conventions yet: this change adds responses to `2♣️` and opener's rebid
+  (task 10.4), but nothing that asks for aces or bids a slam. `TestAuction_GrandSlam` in
+  `slam_test.go` holds a deal on which East–West should reach a grand slam (West deals and opens
+  `2♣️` with 21 HCP and seven solid hearts; East has six solid clubs) and is skipped until slam
+  bidding exists. Should slam bidding (for example key-card Blackwood after an agreed suit, using
+  the `agreed` fact) be a follow-up change, and which card should carry it?
